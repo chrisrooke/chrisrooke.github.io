@@ -23,6 +23,7 @@ body {
     font-size: 1rem;
     line-height: var(--lheight);
     overflow-x: hidden;
+    width: 100vw;
 }
 
 img {
@@ -45,7 +46,8 @@ nav a {
 }
 
 nav img {
-    height: var(--lheight)
+    height: var(--lheight);
+    width: unset;
 }
 
 a {
