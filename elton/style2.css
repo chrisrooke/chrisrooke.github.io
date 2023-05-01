@@ -301,8 +301,6 @@ footer {
     }
 
     header p {
-        font-size: 1.5rem;
-        line-height: calc(var(--grid) * 1.5);
         margin: 0 auto;
         text-align: center;
     }
@@ -336,7 +334,7 @@ footer {
     }
 
     .ingredients h2 {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         grid-column: 2 / -2;
     }
 
@@ -351,7 +349,7 @@ footer {
     }
 
     .ingredients summary {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         line-height: calc(var(--grid) * 1.5);
     }
 
@@ -390,5 +388,16 @@ footer {
         display: block;
     }
 
+    header p {
+        font-size: 1.5rem;
+        line-height: calc(var(--grid) * 1.5);        
+    }
 
+    .ingredients h2 {
+        font-size: 1.5rem;
+    }
+
+    .ingredients summary {
+        font-size: 1.5rem;
+    }
 }
