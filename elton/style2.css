@@ -189,6 +189,8 @@ details > summary {
     line-height: var(--grid);
     position: relative;
     padding: calc(var(--grid) / 2) calc(var(--grid) * 1.5) calc(var(--grid) / 2) 0;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 summary:before {
@@ -198,12 +200,20 @@ summary:before {
     top: calc(var(--grid) / 2);
     width: var(--grid);
     height: var(--grid);
-    background: var(--white);
+    background-color: var(--white);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='48' viewBox='0 96 960 960' width='48'%3E%3Cpath fill='%23111A21' d='M445.935 860.065v-250h-250v-68.13h250v-250h68.13v250h250v68.13h-250v250h-68.13Z'/%3E%3C/svg%3E");
+    background-size: 1rem;
+    background-position: center center;
+    background-repeat: no-repeat;
     border-radius: 50%;
 }
 
 details[open] summary, summary:hover {
     color: var(--gold);
+}
+
+details[open] summary:before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='48' viewBox='0 96 960 960' width='48'%3E%3Cpath fill='%23111A21' d='M195.935 610.065v-68.13h568.13v68.13h-568.13Z'/%3E%3C/svg%3E");
 }
 
 details > summary::-webkit-details-marker {
