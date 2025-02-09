@@ -1,0 +1,657 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="UTF-8"><meta name="description" content="Astro description"><meta name="viewport" content="width=device-width"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="generator" content="Astro v4.15.12"><title>CSS-Only 3D Lighting and Shading</title><link rel="stylesheet" href="/_astro/index.BAW3Pax-.css"></head> <body> <nav> <p class="nav-title"> <a href="/" class="rotate-identifier">Chris <br />Rooke</a> <span class="filter-wrap"> <span class="element-cursor" id="element-cursor"></span> </span> </p> </nav>  <figure class="article-page-el article-image"> <img src="/assets/articles/css-3d-lighting-shading/thumb.png"> </figure> <time class="article-page-el article-date">18 Jan 2025</time> <header class="article-header"> <h1 class="article-head">CSS-Only 3D Lighting and Shading</h1> <p class="article-intro">How to give the effect of light and shading on 3D objects using only HTML and CSS custom properties, math functions, and 3D positioning.</p> </header> <hr> <main class="article-content"><p>While at CSS Day in Amsterdam this year, I was struck during <a href="https://www.youtube.com/watch?v=l9It4DraRm0">Julia Miocene’s talk on 3D character modelling in CSS</a> that some form of shading or lighting should now also be possible in CSS with the inclusion of the new math and trigonometry capabilities added in 2022, as well as custom properties. It reminded me of a 3D model I made almost ten years ago of the <a href="http://chrisrooke.me/tardis/">TARDIS from Doctor Who</a>, in which I applied Keith Clark’s work on using JS to apply lighting and shading to 3D objects <a href="https://keithclark.co.uk/articles/calculating-element-vertex-data-from-css-transforms/">Keith Clark’s work on using JS to apply lighting and shading to 3D objects</a>.</p>
+<p>With a combination of those new CSS features and some 3D geometry, we can produce a workable solution. I’ll run through the implementation, covering both the CSS and the maths behind it. If the maths doesn’t make sense (or you don’t care!), then taking the code and running with your own 3D models will work — just be careful around which calcs you use and the order of your rotations. We’ll run through why that is a little later.</p>
+<p class="codepen" data-height="300" data-default-tab="result" data-slug-hash="xxvmOox" data-pen-title="3D Objects and Shading" data-user="chrisrooke" style="height: 300px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;">
+  <span>See the Pen <a href="https://codepen.io/chrisrooke/pen/xxvmOox">
+  3D Objects and Shading</a> by Chris Rooke (<a href="https://codepen.io/chrisrooke">@chrisrooke</a>)
+  on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<h2 id="expectation-setting">Expectation Setting</h2>
+<p>We aren’t going to set up an <em>actual</em> light source in CSS: we won’t be tracing rays, or considering how the placement of different objects affect one another (for example, if you have one object in front of another, the front object won’t block the lighting of the back object). What we will do is mimic the impression of ambient light on the faces of our 3D objects. The shading will be dynamically calculated based on the current position of each face and the object they belong to, and the direction of the light. By ambient light, I mean light that is so diffuse and distant that it affects all parts of an object face equally, similar to the sun’s light. There won’t be any spotlighting or sense of distance of light from an object (although that may be possible with more complex maths).</p>
+<h2 id="the-theory">The Theory</h2>
+<p>In 3D geometry, every object has a normal: an object perpendicular to another object. The easiest way to visualise this is to imagine a line coming directly out of the side of an object, pointing away from it. If you are looking straight-on at a cube so one side is directly facing you, then the normal would be between you and the cube side. In the same position the normal of the top of the cube would be pointing upwards, the normal of the bottom downwards, and the normal of the back will be pointing away from you.</p>
+<figure class="diagram">
+    <div class="diagram__normal">
+        <div></div>
+    </div>
+    <figcaption>A face with its normal illustrated.</figcaption>
+</figure>
+<p>When we set up any 3D object in CSS, it also has a normal. We’ll use CSS math functions and custom properties to calculate and hold the normal of each face of our object.</p>
+<p>Why use normals instead of just comparing the angle values? Normals are a consistent way of calculating an object’s position in 3D space. Setting up comparison of positions in either the X or Y axis individually is very straightforward. Combining those is complex. This is particularly true when we have multiple ways of achieving the same position: for example, <code>rotateY(180deg) rotateX(0deg)</code> and <code>rotateY(0deg) rotateX(180deg)</code> would result in the object facing the same direction, but trying to calculate this without 3D geometry becomes a mess.</p>
+<p>Similarly, the same values can produce different results when ordered differently within a transform. The diagram below shows how <code>rotateX(30deg) rotateY(30deg)</code> and <code>rotateY(30deg) rotateX(30deg)</code> produce different results, with the end rotation facing different directions. And that’s without adding rotateZ to the mix! Calculating the normal allows us to treat these differences accurately.</p>
+<figure class="diagram six-col">
+    <div class="diagram__angle-comparison diagram__angle-comparison_1">
+        <div></div>
+    </div>
+    <figcaption>Applying <code>rotateX(30deg) rotateY(30deg)</code> to an element.</figcaption>
+    </figure>
+<figure class="diagram six-col">
+    <div class="diagram__angle-comparison diagram__angle-comparison_2">
+        <div></div>
+    </div>
+    <figcaption>Applying <code>rotateY(30deg) rotateX(30deg)</code> to an element.</figcaption>
+</figure>
+<p>We’ll set up a light source within our scene and similarly set the direction it faces using the same technique of rotations around the X-, Y-, and Z-axes. It doesn’t have to be a visible element (although for most of the development we’ll show an indicator of the light source to ensure our code is working), but it will be set up using the same methods as any other object in CSS.  It too will have a normal, which we’ll calculate and store using CSS custom properties.</p>
+<p>We can then compare the normal of each face and the normal of the light source (using what is called a dot product) to see how similar or different they are. If the normals are the same, we know the light is directly facing that face and can ensure it is bright. If the normals are the opposite then we know that the face is pointing directly away from the light and therefore should be dark. Anything in-between will receive a suitable level of shading depending on the value of the dot product.</p>
+<h3 id="differences-in-css-rotations-and-3d-geometric-rotations">Differences in CSS Rotations and 3D Geometric Rotations</h3>
+<p>One important difference that we need to handle is the direction in which rotations take place. In 3D geometry, when an object is rotated around an axis it rotates counter-clockwise when looking from the positive end of the axis. In 3D CSS, when we rotate around an object around an axis it rotates clockwise when you look from the positive end of that axis.</p>
+<figure class="diagram square six-col">
+    <div class="diagram__axis">
+        <div class="x-axis">X-axis</div>
+        <div class="y-axis">Y-axis</div>
+        <div class="z-axis">Z-axis</div>
+    </div>
+    <figcaption>3D rotation directions in mathematics</figcaption>
+</figure>
+<figure class="diagram square six-col">
+    <div class="diagram__axis diagram__axis__css">
+        <div class="x-axis">X-axis</div>
+        <div class="y-axis">Y-axis</div>
+        <div class="z-axis">Z-axis</div>
+    </div>
+    <figcaption>3D rotation directions in CSS</figcaption>
+</figure>
+<p>To handle this, we’ll simply need a negative version for each rotation value to ensure the maths matches up to what’s being displayed on-screen. This won’t be the case for the Z-axis however due to another quirk. In CSS, the positive end of the Z-axis is considered to be facing you: if we set translateZ() to be a positive value, the object moves towards us. In 3D geometry, the positive end is the opposite direction. Because of this difference, the direction of the rotations around the Z-axis end up matching: a clockwise rotation value in CSS automatically matches the counterclockwise rotation value for the maths, so we don’t need to apply that negative adjustment to rotations around the Z-axis.</p>
+<h2 id="setting-up-the-3d-object">Setting up the 3D Object</h2>
+<p>Let’s put all of this into action. This will be very familiar if you’ve ever set up a 3D object in CSS before.</p>
+<p>We’ll set up our <code>body</code> with style <code>perspective: 1000px</code> as our 3D environment. Within this we’ll add a <code>div#scene</code> which will contain a custom property <code>—object-size</code> to determine the size of one face of our object (and we’ll make this responsive). Finally, we’re going to rotate the whole scene <code>rotateX(-30deg) rotateY(-30deg)</code> so we can see more of our object than just the front.</p>
+<p>Because each scene will only have a single source of light, we’re going to place the rotation values of our light element in our div#scene too. We’ll have a value for each axis: <code>—light-x-deg</code>, <code>—light-y-deg</code>, and <code>—light-z-deg</code>. As explained above, for the X and Y axes we need the same value but with the reverse rotation so we’ll add <code>—light-x-calc</code> and <code>—light-y-calc</code> too, using calc to multiply the degree values by -1.</p>
+<p>Inside our scene we’ll hold a <code>figure.object</code>. The <code>figure.object</code> must contain <code>transform-style: preserve-3d</code> in order to maintain our 3D perspective. I’ve also set this up with <code>width: 100%</code> and <code>height: unset</code> in order to allow for different shapes to be created from the same template. <code>position: relative</code> will allow us to place the faces of our shape. And finally, we’ll add our rotation values to it. Like the light, we’ll have five variables in total:</p>
+<ul>
+<li><code>—object-x-deg;</code></li>
+<li><code>—object-x-calc;</code></li>
+<li><code>—object-y-deg;</code></li>
+<li><code>—object-y-calc;</code></li>
+<li><code>—object-z-deg;</code></li>
+</ul>
+<p>We’ll use three of those to apply the rotation using <code>transform: rotateY(var(—object-y-deg)) rotateX(var(—object-x-deg)) rotateZ(var(—object-z-deg));</code>. As mentioned above, the order of the rotations is very important as changing it will alter the final transformation.</p>
+<p>We’ll start with a simple object: a cube. We’ll add a class of cube to our <code>figure.object</code>, which gives the aspect ratio for the face (in this case, 1) and the amount that each face should be translated out from the centre. Because this is a cube and all sides are equal, it’s simply half of the object size.</p>
+<p>Each face is the same except for two custom properties, <code>—face-x-deg</code> and <code>—face-y-deg</code>, which they will be rotated around. The specific CSS to achieve this is:
+<code>transform: rotateY(var(—face-y-deg)) rotateX(var(—face-x-deg)) translateZ(var(—face-translate));</code>.
+Again, the order of the rotations is important to note. We can just change the custom property value for each face, and our cube is set up.</p>
+<h2 id="setting-up-the-light-source">Setting up the Light Source</h2>
+<p>Finally, within the scene (but as a sibling to the object), we’ll set up a <code>figure#light</code> to demonstrate where the light source currently is. You’ll now see a (very basic!) visual representation of the light source appear with the cube.</p>
+<p class="codepen" data-height="300" data-default-tab="result" data-slug-hash="RNbOGzY" data-pen-title="CSS-Only 3D Lighting and Shading Pt 1: Cube and Light Setup" data-user="chrisrooke" style="height: 300px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;">
+  <span>See the Pen <a href="https://codepen.io/chrisrooke/pen/RNbOGzY">
+  CSS-Only 3D Lighting and Shading Pt 1: Cube and Light Setup</a> by Chris Rooke (<a href="https://codepen.io/chrisrooke">@chrisrooke</a>)
+  on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<h2 id="calculating-the-normals">Calculating the Normals</h2>
+<p>The method we’re going to use for calculating all of these normals is going to be the same, but will get more complex as we go along. Normals are calculated by multiplying the 3D rotation matrices for each axis, and then plugging in your current rotation values to obtain the result.</p>
+<p>In geometry, for each axis there is a rotation matrix that represents the transformation when an object is represented around that axis:</p>
+<p>
+<math>
+    <msub><mi>R</mi><mi>x</mi></msub><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo>
+    <mo>=</mo>
+    <mrow>
+        <mo>[</mo>
+        <mtable>
+        <mtr>
+            <mtd><mn>1</mn></mtd>
+            <mtd><mn>0</mn></mtd>
+            <mtd><mn>0</mn></mtd>
+        </mtr>
+        <mtr>
+            <mtd><mn>0</mn></mtd>
+            <mtd><mi>cos</mi><mi>θ</mi></mtd>
+            <mtd><mo>−</mo><mi>sin</mi><mi>θ</mi></mtd>
+        </mtr>
+        <mtr>
+            <mtd><mn>0</mn></mtd>
+            <mtd><mi>sin</mi><mi>θ</mi></mtd>
+            <mtd><mi>cos</mi><mi>θ</mi></mtd>
+        </mtr>
+        </mtable>
+        <mo>]</mo>
+    </mrow>
+</math>
+</p>
+<p>
+      <math>
+        <msub><mi>R</mi><mi>y</mi></msub><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo>
+        <mo>=</mo>
+        <mrow>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>cos</mi><mi>θ</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>sin</mi><mi>θ</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>1</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mo>−</mo><mi>sin</mi><mi>θ</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>cos</mi><mi>θ</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+        </mrow>
+      </math>
+</p>
+<p>
+      <math>
+        <msub><mi>R</mi><mi>z</mi></msub><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo>
+        <mo>=</mo>
+        <mrow>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>cos</mi><mi>θ</mi></mtd>
+              <mtd><mo>−</mo><mi>sin</mi><mi>θ</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mi>sin</mi><mi>θ</mi></mtd>
+              <mtd><mi>cos</mi><mi>θ</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>1</mn></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+        </mrow>
+      </math>
+    </p>
+<p>When multiple rotations are applied to an object, multiplying these matrices gives an accurate transformation result. This is where the order of the rotations becomes important. In the same way that re-ordering rotations changes the end result, matrix multiplication is non-commutive meaning that the order in which you multiply the matrices affects the result. The order that you apply your rotations needs to match the order that these matrices are multiplied to accurately find the normal of your object.</p>
+<p>The final matrix we’ll need to hand is the origin matrix. This is a matrix with three values: the first representing the rotation towards the X axis, the second representing the rotation towards the Y axis, and the third the rotation towards the Z axis. Each value is between 1 and -1, where 1 indicates that the object is facing the same direction as the positive end of that axis, and -1 when the object is facing the negative end of that axis.</p>
+<p>When we draw an element in CSS (before applying any transform) it is facing us, towards the positive end of the CSS Z-axis. These elements are also directly halfway between the positive and negative ends of both the X and Y axes. Therefore, our origin matrix for everything in CSS is:</p>
+<p>
+<math>
+    <msub><mi>n</mi><mn>0</mn></msub>
+    <mo>=</mo>
+    <mrow>
+        <mo>[</mo>
+        <mtable>
+        <mtr>
+            <mtd><mn>0</mn></mtd>
+        </mtr>
+        <mtr>
+            <mtd><mn>0</mn></mtd>
+        </mtr>
+        <mtr>
+            <mtd><mn>1</mn></mtd>
+        </mtr>
+        </mtable>
+        <mo>]</mo>
+    </mrow>
+</math>
+</p>
+<p>(Thinking of this another way: we know that when we transform an element using <code>rotateZ</code>, it spins on the spot without changing direction, where X and Y rotations do change the element’s direction.)</p>
+<p>Let’s start calculating the normal for the light source. In order to find the current position of a face, we need to multiply the rotation matrices. Remembering that we have implemented our rotations in the order <code>transform: rotateY(var(—light-source-y-deg)) rotateX(var(—light-source-x-deg)) translateZ(50vh);</code>. Our math needs to match the order of our rotation, so our formula will be: <math>
+<msub><mi>R</mi><mi>y</mi></msub><mo stretchy="false">(</mo><mi>β</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>x</mi></msub><mo stretchy="false">(</mo><mi>α</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>n</mi><mi>0</mi></msub></math>.</p>
+<p>Let’s step out this matrix multiplication:</p>
+<p>
+      <math>
+        <msub><mi>R</mi><mi>y</mi></msub><mo stretchy="false">(</mo><mi>β</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>x</mi></msub><mo stretchy="false">(</mo><mi>α</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>n</mi><mi>0</mi></msub>
+        <mo>=</mo>
+        <mrow>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>cos</mi><mi>β</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>sin</mi><mi>β</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>1</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mo>−</mo><mi>sin</mi><mi>β</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>cos</mi><mi>β</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+<mo>⋅</mo>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mn>1</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>cos</mi><mi>α</mi></mtd>
+              <mtd><mo>−</mo><mi>sin</mi><mi>α</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>sin</mi><mi>α</mi></mtd>
+              <mtd><mi>cos</mi><mi>α</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+<mo>⋅</mo>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>1</mn></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+        </mrow>
+      </math>
+</p>
+<p>
+    <math>
+        <msub><mi>R</mi><mi>y</mi></msub><mo stretchy="false">(</mo><mi>β</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>x</mi></msub><mo stretchy="false">(</mo><mi>α</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>n</mi><mi>0</mi></msub>
+        <mo>=</mo>
+        <mrow>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>cos</mi><mi>β</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>sin</mi><mi>β</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>1</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mo>−</mo><mi>sin</mi><mi>β</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>cos</mi><mi>β</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+<mo>⋅</mo>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mo>−</mo><mi>sin</mi><mi>α</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mi>cos</mi><mi>α</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+        </mrow>
+      </math>
+</p>
+<p>
+      <math>
+        <msub><mi>R</mi><mi>y</mi></msub><mo stretchy="false">(</mo><mi>β</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>x</mi></msub><mo stretchy="false">(</mo><mi>α</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>n</mi><mi>0</mi></msub>
+        <mo>=</mo>
+<mrow>
+<mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>sin</mi><mi>β</mi><mo>⋅</mo><mi>cos</mi><mi>α</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mo>−</mo><mi>sin</mi><mi>α</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mi>cos</mi><mi>β</mi><mo>⋅</mo><mi>cos</mi><mi>α</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+        </mrow>
+      </math>
+</p>
+<p>CSS does not handle matrix math natively, so we can save the three values in our resulting matrix as three custom properties:</p>
+<pre><code><p>--light-normal-a: calc(sin(var(--light-source-y-calc)) * cos(var(--light-source-x-calc)));</p><p>--light-normal-b: calc(sin(var(--light-source-x-calc)) * -1);</p><p>--light-normal-c: calc(cos(var(--light-source-y-calc)) * cos(var(--light-source-x-calc)));</p></code></pre>
+<p>And that’s our light normal calculated. Simple!</p>
+<p>We’re going to reuse the same matrix math for the normal of each face, however there is an extra layer of complexity: for each face, we need to consider its origin normal (which we know), the rotation of the face within the object (ie which side of the cube it is), and then if any rotation has been applied to the object itself.</p>
+<p>Let’s start with just the faces. We know that each face is rotated first around the Y axis and then around the X axis, so we know that the formulae for the normals will be the same as those we just calculated for the light. We can simply swap out the variable values:</p>
+<pre><code><p>--face-normal-a: calc(sin(var(--face-y-calc)) * cos(var(--face-x-calc)));</p><p>--face-normal-b: calc(-1 * sin(var(--face-x-calc)));</p><p>--face-normal-c: calc(cos(var(--face-x-calc)) * cos(var(--face-y-calc)));</p></code></pre>
+<p>With the face and light normals, we have enough information to set up a static object to respond to a light that is moving around it, so let’s do that first and come back to rotating the object afterwards.</p>
+<p>We now need to calculate the dot product, which will tell us how close the angle of rotation of a face is to the light’s current rotation angle. If the dot product is 1, both are facing the same same direction (and for our purposes, should be fully lit), whereas 0 indicates that the face is looking directly away from the light (and should be the darkest shade we allow).</p>
+<p>The dot product is quite simple: we multiply the corresponding a, b, and c values of the two normals, and add the results:</p>
+<pre><code><p>--dot-product: calc((var(--face-normal-a) * var(--light-normal-a)) + (var(--face-normal-b) * var(--light-normal-b)) + (var(--face-normal-c) * var(--light-normal-c)));</p></code></pre>
+<p>This provides us with our value from 1 to 0. You can use this value to apply whatever effect you’d like to your object. We’ll go with changing the brightness for now. Let’s convert this to a shading value:</p>
+<pre><code><p>--shading: calc((var(--dot-product) + 1) / 2);</p><p>filter: brightness(var(--shading));</p></code></pre>
+<p>This formula uses the dot product value to produce a result ranging from 1 to 0.5 (as I don’t want an overly dramatic shadow), and then uses a css filter to apply that to each face. Again, you could change this to give less or more of a shadow, or to use a different filter, or even a totally different effect using other properties.</p>
+<p>With this, we can now either animate or add controls to our <code>—light-x</code> and <code>—light-y</code> variables, and the brightness values of the faces of our objects will respond accordingly. We’ve done it…</p>
+<p class="codepen" data-height="300" data-default-tab="result" data-slug-hash="OPLGbZP" data-pen-title="CSS-Only 3D Lighting and Shading Pt 2: Light Movement" data-user="chrisrooke" style="height: 300px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;">
+  <span>See the Pen <a href="https://codepen.io/chrisrooke/pen/OPLGbZP">
+  CSS-Only 3D Lighting and Shading Pt 2: Light Movement</a> by Chris Rooke (<a href="https://codepen.io/chrisrooke">@chrisrooke</a>)
+  on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<h2 id="rotating-the-object">Rotating the Object</h2>
+<p>…unless you want to be able to rotate your object too. At the moment, our math doesn’t take into account any changes to the object’s rotation, so let’s fix that.</p>
+<p>The theory is the same as what we have already done: we just need a few more matrix multiplications. Similar to our other elements, we set up our object to rotate around the Y-axis first, then the X-axis, and finally the Z-axis so our math will be very similar. However, because this element is the container of the faces we’ve already positioned, we won’t be using an origin matrix as the faces have already applied that. Instead we need to include the Z-axis in this multiplication, as it will change the direction of the faces when its value is altered: when the cube is rotated around the Z-axis, the direction of the sides of the cube will be altered. Multiplying these three rotation matrices will leave us with a 3x3 matrix, as calculated below.</p>
+<p>
+      <math>
+        <msub><mi>R</mi><mi>y</mi></msub><mo stretchy="false">(</mo><mi>β</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>x</mi></msub><mo stretchy="false">(</mo><mi>α</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>z</mi></msub><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo>
+        <mo>=</mo>
+        <mrow>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>cos</mi><mi>β</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>sin</mi><mi>β</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>1</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mo>−</mo><mi>sin</mi><mi>β</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>cos</mi><mi>β</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+<mo>⋅</mo>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mn>1</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>cos</mi><mi>α</mi></mtd>
+              <mtd><mo>−</mo><mi>sin</mi><mi>α</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>sin</mi><mi>α</mi></mtd>
+              <mtd><mi>cos</mi><mi>α</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+<mo>⋅</mo>
+                    <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>cos</mi><mi>γ</mi></mtd>
+              <mtd><mo>−</mo><mi>sin</mi><mi>γ</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mi>sin</mi><mi>γ</mi></mtd>
+              <mtd><mi>cos</mi><mi>γ</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>1</mn></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+        </mrow>
+      </math>
+</p>
+<p>
+      <math>
+        <msub><mi>R</mi><mi>y</mi></msub><mo stretchy="false">(</mo><mi>β</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>x</mi></msub><mo stretchy="false">(</mo><mi>α</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>z</mi></msub><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo>
+        <mo>=</mo>
+        <mrow>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>cos</mi><mi>β</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>sin</mi><mi>β</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mn>1</mn></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mo>−</mo><mi>sin</mi><mi>β</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+              <mtd><mi>cos</mi><mi>β</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+<mo>⋅</mo>
+          <mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>cos</mi><mi>γ</mi></mtd>
+              <mtd><mo>−</mo><mi>sin</mi><mi>γ</mi></mtd>
+              <mtd><mn>0</mn></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mi>cos</mi><mi>α</mi><mo>⋅</mo><mi>sin</mi><mi>γ</mi></mtd>
+              <mtd><mi>cos</mi><mi>α</mi><mo>⋅</mo><mi>cos</mi><mi>γ</mi></mtd>
+              <mtd><mo>−</mo><mi>sin</mi><mi>α</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mi>sin</mi><mi>α</mi><mo>⋅</mo><mi>sin</mi><mi>γ</mi></mtd>
+              <mtd><mi>sin</mi><mi>α</mi><mo>⋅</mo><mi>cos</mi><mi>γ</mi></mtd>
+              <mtd><mi>cos</mi><mi>α</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+        </mrow>
+      </math>
+</p>
+<p>
+      <math>
+        <msub><mi>R</mi><mi>y</mi></msub><mo stretchy="false">(</mo><mi>β</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>x</mi></msub><mo stretchy="false">(</mo><mi>α</mi><mo stretchy="false">)</mo>
+<mo>⋅</mo>
+<msub><mi>R</mi><mi>z</mi></msub><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo>
+        <mo>=</mo>
+        <mrow>
+<mo>[</mo>
+          <mtable>
+            <mtr>
+              <mtd><mi>cos</mi><mi>β</mi><mo>⋅</mo><mi>cos</mi><mi>γ</mi><mo>+</mo><mi>sin</mi><mi>β</mi><mo>⋅</mo><mi>sin</mi><mi>α</mi><mo>⋅</mo><mi>sin</mi><mi>γ</mi></mtd>
+              <mtd><mi>cos</mi><mi>β</mi><mo>⋅</mo><mo>−</mo><mi>sin</mi><mi>γ</mi><mo>+</mo><mi>sin</mi><mi>β</mi><mo>⋅</mo><mi>sin</mi><mi>α</mi><mo>⋅</mo><mi>cos</mi><mi>γ</mi></mtd>
+              <mtd><mi>sin</mi><mi>β</mi><mo>⋅</mo><mi>cos</mi><mi>α</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mi>cos</mi><mi>α</mi><mo>⋅</mo><mi>sin</mi><mi>γ</mi></mtd>
+              <mtd><mi>cos</mi><mi>α</mi><mo>⋅</mo><mi>cos</mi><mi>γ</mi></mtd>
+              <mtd><mo>−</mo><mi>sin</mi><mi>α</mi></mtd>
+            </mtr>
+            <mtr>
+              <mtd><mo>−</mo><mi>sin</mi><mi>β</mi><mo>⋅</mo><mi>cos</mi><mi>γ</mi><mo>+</mo><mi>cos</mi><mi>β</mi><mo>⋅</mo><mi>sin</mi><mi>α</mi><mo>⋅</mo><mi>sin</mi><mi>γ</mi></mtd>
+              <mtd><mi>sin</mi><mi>β</mi><mo>⋅</mo><mi>sin</mi><mi>γ</mi><mo>+</mo><mi>cos</mi><mi>β</mi><mo>⋅</mo><mi>sin</mi><mi>α</mi><mo>⋅</mo><mi>cos</mi><mi>γ</mi></mtd>
+              <mtd><mi>cos</mi><mi>β</mi><mo>⋅</mo><mi>cos</mi><mi>α</mi></mtd>
+            </mtr>
+          </mtable>
+          <mo>]</mo>
+        </mrow>
+      </math>
+</p>
+<p>We’ll store each of these matrix values in css custom properties, where the first number indicates the row of the matrix and the second indicates the column. We’ll also be using the calc values again to ensure the math is accurate to what’s happening on-screen:</p>
+<pre><code><p>--object-normal-11: calc((cos(var(--object-y-calc)) * cos(var(--object-z-calc))) + (sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * sin(var(--object-z-calc))));</p><p>--object-normal-12: calc((sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * cos(var(--object-z-calc))) - (sin(var(--object-z-calc)) * cos(var(--object-y-calc))));</p><p>--object-normal-13: calc(sin(var(--object-y-calc)) * cos(var(--object-x-calc)));</p><p>--object-normal-21: calc(sin(var(--object-z-calc)) * cos(var(--object-x-calc)));</p>
+<p>--object-normal-22: calc(cos(var(--object-x-calc)) * cos(var(--object-z-calc)));</p><p>--object-normal-23: calc(sin(var(--object-x-calc)) * -1);</p><p>--object-normal-31: calc((sin(var(--object-x-calc)) * sin(var(--object-z-calc)) * cos(var(--object-y-calc))) - (sin(var(--object-y-calc)) * cos(var(--object-z-calc))));</p><p>--object-normal-32: calc((sin(var(--object-y-calc)) * sin(var(--object-z-calc))) + (sin(var(--object-x-calc)) * cos(var(--object-y-calc)) * cos(var(--object-z-calc))));</p><p>--object-normal-33: calc(cos(var(--object-x-calc)) * cos(var(--object-y-calc)));</p></code></pre>
+<p>We then need to multiply the object normals into the face normals we created earlier. Again, this is just more matrix multiplication. At this point, we can then represent this matrix multiplication directly in the CSS:</p>
+<pre><code><p>--face-rotated-normal-a: calc(var(--face-normal-a) * var(--object-normal-11) + var(--face-normal-b) * var(--object-normal-12) + var(--face-normal-c) * var(--object-normal-13));</p><p>--face-rotated-normal-b: calc(var(--face-normal-a) * var(--object-normal-21) + var(--face-normal-b) * var(--object-normal-22) + var(--face-normal-c) * var(--object-normal-23));</p><p>--face-rotated-normal-c: calc(var(--face-normal-a) * var(--object-normal-31) + var(--face-normal-b) * var(--object-normal-32) + var(--face-normal-c) * var(--object-normal-33));</p></code></pre>
+<p>All that’s needed then is to swap our dot product calculation to use these new values rather than the original face normal values:</p>
+<pre><code><p>--dot-product: calc((var(--face-rotated-normal-a) * var(--light-normal-a)) + (var(--face-rotated-normal-b) * var(--light-normal-b)) + (var(--face-rotated-normal-c) * var(—light-normal-c)));</p></code></pre>
+<p>And there you have a light and an object that can both be moved as needed and see the lighting and shading as you might expect!</p>
+<p class="codepen" data-height="300" data-default-tab="result" data-slug-hash="ByBEQVN" data-pen-title="CSS-Only 3D Lighting and Shading Pt 3: Cube and Light Movement" data-user="chrisrooke" style="height: 300px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;">
+  <span>See the Pen <a href="https://codepen.io/chrisrooke/pen/ByBEQVN">
+  CSS-Only 3D Lighting and Shading Pt 3: Cube and Light Movement</a> by Chris Rooke (<a href="https://codepen.io/chrisrooke">@chrisrooke</a>)
+  on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<h2 id="other-rotation-values">Other Rotation Values</h2>
+<p>Any order of rotations can be used for the light, the faces, and the objects. There’s also no need for all elements to use the same order, different ones can be applied provided the CSS custom properties match up.</p>
+<p class="codepen" data-height="300" data-default-tab="result" data-slug-hash="xxvmOox" data-pen-title="3D Objects and Shading" data-user="chrisrooke" style="height: 300px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;">
+  <span>See the Pen <a href="https://codepen.io/chrisrooke/pen/xxvmOox">
+  3D Objects and Shading</a> by Chris Rooke (<a href="https://codepen.io/chrisrooke">@chrisrooke</a>)
+  on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<p>Not bothered doing the matrix multiplication? I don’t blame you, so here’s a cheat sheet of all the possible combinations for up to three rotations around the different axes:</p>
+<ul>
+  <li>
+    <details>
+      <summary>X-Only: <code>rotateX(var(--object-x-deg))</code></summary>
+      <pre><code><p>--object-normal-11: 1;</p><p>--object-normal-12: 0;</p><p>--object-normal-13: 0;</p><p>--object-normal-21: 0;</p><p>--object-normal-22: calc(cos(var(--object-x-calc)));</p><p>--object-normal-23: calc(sin(var(--object-x-calc)) * -1);</p><p>--object-normal-31: 0;</p><p>--object-normal-32: calc(sin(var(--object-x-calc)));</p><p>--object-normal-33: calc(cos(var(--object-x-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+  </li><li>
+    <details>
+      <summary>Y-Only: <code>rotateY(var(--object-y-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-y-calc)));</p><p>--object-normal-12: 0;</p><p>--object-normal-13: calc(sin(var(--object-y-calc)));</p><p>--object-normal-21: 0;</p><p>--object-normal-22: 1;</p><p>--object-normal-23: 0;</p><p>--object-normal-31: calc(sin(var(--object-y-calc)) * -1);</p><p>--object-normal-32: 0;</p><p>--object-normal-33: calc(cos(var(--object-y-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>Z-Only: <code>rotateZ(var(--object-z-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-z-calc)));</p><p>--object-normal-12: calc(sin(var(--object-z-calc)) * -1);</p><p>--object-normal-13: 0;</p><p>--object-normal-21: calc(sin(var(--object-z-calc)));</p><p>--object-normal-22: calc(cos(var(--object-z-calc)));</p><p>--object-normal-23: 0;</p><p>--object-normal-31: 0;</p><p>--object-normal-32: 0;</p><p>--object-normal-33: 1;</p></code></pre>
+    </details>
+  </li>
+    <li>
+    <details>
+      <summary>XY: <code>rotateX(var(--object-x-deg)) rotateY(var(--object-y-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-y-calc)));</p><p>--object-normal-12: 0;</p><p>--object-normal-13: calc(sin(var(--object-y-calc)));</p><p>--object-normal-21: calc(sin(var(--object-x-calc)) * sin(var(--object-y-calc)));</p><p>--object-normal-22: calc(cos(var(--object-x-calc)));</p><p>--object-normal-23: calc(sin(var(--object-x-calc)) * cos(var(--object-y-calc)) * -1);</p><p>--object-normal-31: calc(sin(var(--object-y-calc)) * cos(var(--object-x-calc)) * -1);</p><p>--object-normal-32: calc(sin(var(--object-x-calc)));</p><p>--object-normal-33: calc(cos(var(--object-x-calc)) * cos(var(--object-y-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>XZ: <code>rotateX(var(--object-x-deg)) rotateZ(var(--object-z-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-z-calc)));</p><p>--object-normal-12: calc(sin(var(--object-z-calc)) * -1);</p><p>--object-normal-13: 0;</p><p>--object-normal-21: calc(sin(var(--object-z-calc)) * cos(var(--object-x-calc)));</p><p>--object-normal-22: calc(cos(var(--object-x-calc)) * cos(var(--object-z-calc)));</p><p>--object-normal-23: calc(sin(var(--object-x-calc)) * -1);</p><p>--object-normal-31: calc(sin(var(--object-x-calc)) * sin(var(--object-z-calc)));</p><p>--object-normal-32: calc(sin(var(--object-x-calc)) * cos(var(--object-z-calc)));</p><p>--object-normal-33: calc(cos(var(--object-x-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>YX: <code>rotateY(var(--object-y-deg)) rotateX(var(--object-x-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-y-calc)));</p><p>--object-normal-12: calc(sin(var(--object-x-calc)) * sin(var(--object-y-calc)));</p><p>--object-normal-13: calc(sin(var(--object-y-calc)) * cos(var(--object-x-calc)));</p><p>--object-normal-21: 0;</p><p>--object-normal-22: calc(cos(var(--object-x-calc)));</p><p>--object-normal-23: calc(sin(var(--object-x-calc)) * -1);</p><p>--object-normal-31: calc(sin(var(--object-y-calc)) * -1);</p><p>--object-normal-32: calc(sin(var(--object-x-calc)) * cos(var(--object-y-calc)));</p><p>--object-normal-33: calc(cos(var(--object-x-calc)) * cos(var(--object-y-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>YZ: <code>rotateY(var(--object-y-deg)) rotateZ(var(--object-z-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-y-calc)) * cos(var(--object-z-calc)));</p><p>--object-normal-12: calc(sin(var(--object-z-calc)) * cos(var(--object-y-calc)) * -1);</p><p>--object-normal-13: calc(sin(var(--object-y-calc)));</p><p>--object-normal-21: calc(sin(var(--object-z-calc)));</p><p>--object-normal-22: calc(cos(var(--object-z-calc)));</p><p>--object-normal-23: 0;</p><p>--object-normal-31: calc(sin(var(--object-y-calc)) * cos(var(--object-z-calc)) * -1);</p><p>--object-normal-32: calc(sin(var(--object-y-calc)) * sin(var(--object-z-calc)));</p><p>--object-normal-33: calc(cos(var(--object-y-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>ZX: <code>rotateZ(var(--object-z-deg)) rotateX(var(--object-x-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-z-calc)));</p><p>--object-normal-12: calc(sin(var(--object-z-calc)) * cos(var(--object-x-calc)) * -1);</p><p>--object-normal-13: calc(sin(var(--object-x-calc)) * sin(var(--object-z-calc)));</p><p>--object-normal-21: calc(sin(var(--object-z-calc)));</p><p>--object-normal-22: calc(cos(var(--object-x-calc)) * cos(var(--object-z-calc)));</p><p>--object-normal-23: calc(sin(var(--object-x-calc)) * cos(var(--object-z-calc)) * -1);</p><p>--object-normal-31: 0;</p><p>--object-normal-32: calc(sin(var(--object-x-calc)));</p><p>--object-normal-33: calc(cos(var(--object-x-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>ZY: <code>rotateZ(var(--object-z-deg)) rotateY(var(--object-y-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-y-calc)) * cos(var(--object-z-calc)));</p><p>--object-normal-12: calc(sin(var(--object-z-calc)) * -1);</p><p>--object-normal-13: calc(sin(var(--object-y-calc)) * cos(var(--object-z-calc)));</p><p>--object-normal-21: calc(sin(var(--object-z-calc)) * cos(var(--object-y-calc)));</p><p>--object-normal-22: calc(cos(var(--object-z-calc)));</p><p>--object-normal-23: calc(sin(var(--object-y-calc)) * sin(var(--object-z-calc)));</p><p>--object-normal-31: calc(sin(var(--object-y-calc)) * -1);</p><p>--object-normal-32: 0;</p><p>--object-normal-33: calc(cos(var(--object-y-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>XYZ: <code>rotateX(var(--object-x-deg)) rotateY(var(--object-y-deg)) rotateZ(var(--object-z-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-y-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-12: calc(sin(var(--object-z-calc)) * cos(var(--object-y-calc)) * -1);</p><p>object-normal-13: calc(sin(var(--object-y-calc)));</p><p>object-normal-21: calc((sin(var(--object-z-calc)) * cos(var(--object-x-calc))) + (sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * cos(var(--object-z-calc))));</p><p>object-normal-22: calc((cos(var(--object-x-calc)) * cos(var(--object-z-calc))) - (sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * sin(var(--object-z-calc))));</p><p>object-normal-23: calc(sin(var(--object-x-calc)) * cos(var(--object-y-calc)) * -1);</p><p>object-normal-31: calc((sin(var(--object-x-calc)) * sin(var(--object-z-calc))) - (sin(var(--object-y-calc)) * cos(var(--object-x-calc)) * cos(var(--object-z-calc))));</p><p>object-normal-32: calc((sin(var(--object-x-calc)) * cos(var(--object-z-calc))) + (sin(var(--object-y-calc)) * sin(var(--object-z-calc)) * cos(var(--object-x-calc))));</p><p>object-normal-33: calc(cos(var(--object-x-calc)) * cos(var(--object-y-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>XZY: <code>rotateX(var(--object-x-deg)) rotateZ(var(--object-z-deg)) rotateY(var(--object-y-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-y-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-12: calc(sin(var(--object-z-calc)) * -1);</p><p>object-normal-13: calc(sin(var(--object-y-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-21: calc((sin(var(--object-z-calc)) * cos(var(--object-x-calc)) * cos(var(--object-y-calc))) + (sin(var(--object-x-calc)) * sin(var(--object-y-calc))));</p><p>object-normal-22: calc(cos(var(--object-x-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-23: calc((sin(var(--object-y-calc)) * sin(var(--object-z-calc)) * cos(var(--object-x-calc))) - (sin(var(--object-x-calc)) * cos(var(--object-y-calc))));</p><p>object-normal-31: calc((sin(var(--object-x-calc)) * sin(var(--object-z-calc)) * cos(var(--object-y-calc))) - (sin(var(--object-y-calc)) * cos(var(--object-x-calc))));</p><p>object-normal-32: calc(sin(var(--object-x-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-33: calc((sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * sin(var(--object-z-calc))) + (cos(var(--object-x-calc)) * cos(var(--object-y-calc))));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>YXZ: <code>rotateY(var(--object-y-deg)) rotateX(var(--object-x-deg)) rotateZ(var(--object-z-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc((cos(var(--object-y-calc)) * cos(var(--object-z-calc))) + (sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * sin(var(--object-z-calc))));</p><p>object-normal-12: calc((sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * cos(var(--object-z-calc))) - (sin(var(--object-z-calc)) * cos(var(--object-y-calc))));</p><p>object-normal-13: calc(sin(var(--object-y-calc)) * cos(var(--object-x-calc)));</p><p>object-normal-21: calc(sin(var(--object-z-calc)) * cos(var(--object-x-calc)));</p><p>object-normal-22: calc(cos(var(--object-x-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-23: calc(sin(var(--object-x-calc)) * -1);</p><p>object-normal-31: calc((sin(var(--object-x-calc)) * sin(var(--object-z-calc)) * cos(var(--object-y-calc))) - (sin(var(--object-y-calc)) * cos(var(--object-z-calc))));</p><p>object-normal-32: calc((sin(var(--object-y-calc)) * sin(var(--object-z-calc))) + (sin(var(--object-x-calc)) * cos(var(--object-y-calc)) * cos(var(--object-z-calc))));</p><p>object-normal-33: calc(cos(var(--object-x-calc)) * cos(var(--object-y-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>YZX: <code>rotateY(var(--object-y-deg)) rotateZ(var(--object-z-deg)) rotateX(var(--object-x-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-y-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-12: calc((sin(var(--object-x-calc)) * sin(var(--object-y-calc))) - (sin(var(--object-z-calc)) * cos(var(--object-x-calc)) * cos(var(--object-y-calc))));</p><p>object-normal-13: calc((sin(var(--object-x-calc)) * sin(var(--object-z-calc)) * cos(var(--object-y-calc))) + (sin(var(--object-y-calc)) * cos(var(--object-x-calc))));</p><p>object-normal-21: calc(sin(var(--object-z-calc)));</p><p>object-normal-22: calc(cos(var(--object-x-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-23: calc(sin(var(--object-x-calc)) * cos(var(--object-z-calc)) * -1);</p><p>object-normal-31: calc(sin(var(--object-y-calc)) * cos(var(--object-z-calc)) * -1);</p><p>object-normal-32: calc((sin(var(--object-y-calc)) * sin(var(--object-z-calc)) * cos(var(--object-x-calc))) + (sin(var(--object-x-calc)) * cos(var(--object-y-calc))));</p><p>object-normal-33: calc((cos(var(--object-x-calc)) * cos(var(--object-y-calc))) - (sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * sin(var(--object-z-calc))));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>ZXY: <code>rotateZ(var(--object-z-deg)) rotateX(var(--object-x-deg)) rotateY(var(--object-y-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc((cos(var(--object-y-calc)) * cos(var(--object-z-calc))) - (sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * sin(var(--object-z-calc))));</p><p>object-normal-12: calc(sin(var(--object-z-calc)) * cos(var(--object-x-calc)) * -1);</p><p>object-normal-13: calc((sin(var(--object-y-calc)) * cos(var(--object-z-calc))) + (sin(var(--object-x-calc)) * sin(var(--object-z-calc)) * cos(var(--object-y-calc))));</p><p>object-normal-21: calc((sin(var(--object-z-calc)) * cos(var(--object-y-calc))) + (sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * cos(var(--object-z-calc))));</p><p>object-normal-22: calc(cos(var(--object-x-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-23: calc((sin(var(--object-y-calc)) * sin(var(--object-z-calc))) - (sin(var(--object-x-calc)) * cos(var(--object-y-calc)) * cos(var(--object-z-calc))));</p><p>object-normal-31: calc(sin(var(--object-y-calc)) * cos(var(--object-x-calc)) * -1);</p><p>object-normal-32: calc(sin(var(--object-x-calc)));</p><p>object-normal-33: calc(cos(var(--object-x-calc)) * cos(var(--object-y-calc)));</p></code></pre>
+    </details>
+  </li>
+  <li>
+    <details>
+      <summary>ZYX: <code>rotateZ(var(--object-z-deg)) rotateY(var(--object-y-deg)) rotateX(var(--object-x-deg))</code></summary>
+      <pre><code><p>--object-normal-11: calc(cos(var(--object-y-calc)) * cos(var(--object-z-calc)));</p><p>object-normal-12: calc((sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * cos(var(--object-z-calc))) - (sin(var(--object-z-calc)) * cos(var(--object-x-calc))));</p><p>object-normal-13: calc((sin(var(--object-y-calc)) * cos(var(--object-x-calc)) * cos(var(--object-z-calc))) + (sin(var(--object-x-calc)) * sin(var(--object-z-calc))));</p><p>object-normal-21: calc(sin(var(--object-z-calc)) * cos(var(--object-y-calc)));</p><p>object-normal-22: calc((sin(var(--object-x-calc)) * sin(var(--object-y-calc)) * sin(var(--object-z-calc))) + (cos(var(--object-x-calc)) * cos(var(--object-z-calc))));</p><p>object-normal-23: calc((sin(var(--object-y-calc)) * sin(var(--object-z-calc)) * cos(var(--object-x-calc))) - (sin(var(--object-x-calc)) * cos(var(--object-z-calc))));</p><p>object-normal-31: calc(sin(var(--object-y-calc)) * -1);</p><p>object-normal-32: calc(sin(var(--object-x-calc)) * cos(var(--object-y-calc)));</p><p>object-normal-33: calc(cos(var(--object-x-calc)) * cos(var(--object-y-calc)));</p></code></pre>
+    </details>
+  </li>
+</ul>
+<h2 id="keyframes">Keyframes</h2>
+<p>You’ll notice in the code samples I have built that I have hooked up some sliders to control the object and light rotation property values. This works will, but if you are look for a more curated experience you may want to use keyframes to control the rotations. This can be done, but we’ll just need to define our core custom properties using <code>@property</code>:</p>
+<pre><code>@property --object-x {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --object-y {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --object-z {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --light-x {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --light-y {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}</number></number></number></number></number></code></pre>
+<p>We can now use keyframes to change these values directly, and the rest of the work is done for us.</p>
+<p class="codepen" data-height="300" data-default-tab="result" data-slug-hash="GgKLNXK" data-pen-title="CSS-Only 3D Lighting and Shading Pt 4: Keyframes" data-user="chrisrooke" style="height: 300px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;">
+  <span>See the Pen <a href="https://codepen.io/chrisrooke/pen/GgKLNXK">
+  CSS-Only 3D Lighting and Shading Pt 4: Keyframes</a> by Chris Rooke (<a href="https://codepen.io/chrisrooke">@chrisrooke</a>)
+  on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<p>We could combine this with other new features too. For example, we could hook up these keyframes to a scroll-controlled animation and have the effect alter as the user scrolls.</p>
+<p class="codepen" data-height="300" data-default-tab="result" data-slug-hash="jENRVRm" data-pen-title="CSS-Only 3D Lighting and Shading Pt 5: Scroll-Controlled" data-user="chrisrooke" style="height: 300px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;">
+  <span>See the Pen <a href="https://codepen.io/chrisrooke/pen/jENRVRm">
+  CSS-Only 3D Lighting and Shading Pt 5: Scroll-Controlled</a> by Chris Rooke (<a href="https://codepen.io/chrisrooke">@chrisrooke</a>)
+  on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<p>I’m looking forward to seeing how you choose to implement this going forward — please drop a message on Bluesky or by email if this shading is useful to you!</p></main>  <footer>&copy; 2025 Chris Rooke </footer> <div class="custom-cursor" id="custom-cursor"></div> <!-- <div class="custom-cursor custom-cursor2" id="custom-cursor2"></div> --> <script src="/script.js"></script> <script async src="https://public.codepenassets.com/embed/index.js"></script> </body> </html>

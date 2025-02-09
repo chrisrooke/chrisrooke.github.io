@@ -1,0 +1,238 @@
+:root {
+    --black: #111a21;
+    --metallic: #c29064;
+    --gold: #b09461;
+    --white: #d7d2cb;
+    --lheight: 1.25rem;
+}
+
+* {
+    box-sizing: border-box;
+    --webkit-font-smoothing: antialiased;
+}
+
+body {
+    background: var(--black);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: max-content;
+    grid-gap: var(--lheight);
+    padding: 0 var(--lheight);
+    color: var(--white);
+    font-family: 'Aktiv', sans-serif, system-ui;
+    font-size: 1rem;
+    line-height: var(--lheight);
+    overflow-x: hidden;
+    width: 100vw;
+}
+
+img {
+    width: 100%;
+}
+
+nav {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: calc(3 * var(--lheight));
+    margin-bottom: var(--lheight);
+}
+
+nav a {
+    height: 3rem;
+    display: flex;
+    align-items: center;
+}
+
+nav img {
+    height: var(--lheight);
+    width: unset;
+}
+
+a {
+    color: var(--white);
+    text-transform: uppercase;
+    text-decoration: unset;
+    font-size: .75rem;
+    display: block;
+    position: relative;
+    font-family: 'Sackers', sans-serif, system-ui;
+}
+
+a:hover {
+    color: var(--gold);
+}
+
+a:not(:first-child):before {
+    width: 100%;
+    height: var(--lheight);
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    border-bottom: 1px solid var(--gold);
+    opacity: 0;
+}
+
+a:hover:before {
+    opacity: 1;
+}
+
+header {
+    grid-column: 1 / -2;
+    grid-row: 2;
+}
+
+h1 img { width: 100% }
+
+p {
+    grid-column: 1 / -2;
+}
+
+header p {
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .0625rem;
+    grid-row: 3;
+    padding-top: calc(var(--lheight) / 2);
+}
+
+header + p {
+    grid-row: 3;
+}
+
+.hero {
+    grid-column: 3 / -1;
+    grid-row: 2 / span 2;
+    width: 100%;
+    height: 100vh;
+    object-fit: contain;
+    object-position: left top;
+    transform: translateX(calc(50% + var(--lheight) /2));
+    max-height: calc(((100vw - 2 * var(--lheight)) * .5 - var(--lheight)) * 4);
+}
+
+h2, ul {
+    grid-column: 1 / -1;
+}
+
+h2 {
+    text-transform: uppercase;
+    font-size: .75rem;
+    font-family: 'Sackers', sans-serif, system-ui;
+}
+
+details > summary {
+    list-style: none;
+    cursor: pointer;
+}
+  
+details summary::-webkit-details-marker {
+    display:none;
+}
+  
+details {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 700;
+    padding: calc(var(--lheight) / 2) 0;
+    border-bottom: .0625rem solid rgba(215, 211, 204, 0.5);
+}
+
+details p {
+    font-size: .75rem;
+    padding-top: calc(var(--lheight) / 4);
+}
+
+summary:hover {
+    color: var(--gold);
+}
+
+details[open] summary {
+    color: var(--gold);
+}
+
+figure {
+    margin-top: var(--lheight);
+    grid-column: 1 / -1;
+    background: var(--white);
+    aspect-ratio: 4/3;
+}
+
+.breakout {
+    margin: calc(var(--lheight) * 4) 0;
+    padding: calc(var(--lheight) * 4) 0;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: unset;
+}
+
+.breakout:before {
+    position: absolute;
+    content: '';
+    top: 0;
+    left: calc(var(--lheight) * -1);
+    width: 100vw;
+    height: 100%;
+    background-color: rgb(248,246,245);
+    z-index: -1;
+}
+
+.breakout:after {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    content: '';
+    background-image: url('img/circle.png');
+    width: calc(var(--lheight) * 6);
+    aspect-ratio: 1/1;
+    z-index: 2;
+    background-size: contain;
+    transform: translateY(66.6666%);
+    filter: drop-shadow(0 0 1px rgba(0,0,0,0.2));
+}
+
+.breakout img {
+    grid-column: 2 / -2;
+    transform: rotate(15deg);
+}
+
+.bottles {
+    grid-column: 2 / -2;
+    background: unset;
+    margin: calc(var(--lheight) * 4) 0;
+}
+
+figcaption {
+    display: flex;
+    justify-content: space-between;
+    font-size: .75rem;
+}
+
+blockquote {
+    grid-column: 1 / -1;
+    font-family: 'Sackers', sans-serif, system-ui;
+    font-size: 1.75rem;
+    line-height: calc(var(--lheight) * 2);
+    text-transform: uppercase;
+}
+
+footer {
+    margin-top: calc(var(--lheight) * 4);
+    grid-column: 1 / -1;
+    height: calc(var(--lheight) * 3);
+    position: relative;
+}
+
+footer:before {
+    position: absolute;
+    content: '';
+    top: 0;
+    left: calc(var(--lheight) * -1);
+    width: 100vw;
+    height: 100%;
+    background-image: url('img/footer.jpg');
+    background-size: cover;
+}

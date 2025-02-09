@@ -1,0 +1,24 @@
+@font-face {
+    font-family: 'Sackers';
+    src: url('fonts/sackersgothicstd-heavy-webfont.woff2') format('woff2'),
+         url('fonts/sackersgothicstd-heavy-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Aktiv';
+    src: url('fonts/aktivgrotesk-medium-webfont.woff2') format('woff2'),
+         url('fonts/aktivgrotesk-medium-webfont.woff') format('woff');
+    font-weight: 500;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'Aktiv';
+    src: url('fonts/aktivgrotesk-regular-webfont.woff2') format('woff2'),
+         url('fonts/aktivgrotesk-regular-webfont.woff') format('woff');
+    font-weight: 400;
+    font-style: normal;
+}
