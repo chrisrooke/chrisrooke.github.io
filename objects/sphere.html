@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>3D Sphere</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body id="body">
+    <figure id="controls">
+        <label for="scene-x">Scene X:</label>
+        <input type="range" id="scene-x" class="slider" min="-90" max="0" value="-30">      
+        <span class="slider-value" id="scene-x-value">-30deg</span>
+        <label for="scene-y">Scene y:</label>
+        <input type="range" id="scene-y" class="slider" min="-180" max="180" value="45">      
+        <span class="slider-value" id="scene-y-value">45deg</span>
+        <label for="light-x">Light X:</label>
+        <input type="range" id="light-x" class="slider" min="0" max="180" value="60">      
+        <span class="slider-value" id="light-x-value">60deg</span>
+        <label for="light-y">Light y:</label>
+        <input type="range" id="light-y" class="slider" min="-180" max="180" value="0">      
+        <span class="slider-value" id="light-y-value">0deg</span>
+        <label for="object-x">object X:</label>
+        <input type="range" id="object-x" class="slider" min="-180" max="180" value="0">      
+        <span class="slider-value" id="object-x-value">0deg</span>
+        <label for="object-y">object y:</label>
+        <input type="range" id="object-y" class="slider" min="-180" max="180" value="0">      
+        <span class="slider-value" id="object-y-value">0deg</span>
+        <label for="object-z">object z:</label>
+        <input type="range" id="object-z" class="slider" min="-180" max="180" value="0">      
+        <span class="slider-value" id="object-z-value">0deg</span>
+        <label for="elevation">elevation:</label>
+        <input type="range" id="elevation" class="slider" min="0" max="200" value="0">      
+        <span class="slider-value" id="elevation-value">0px</span>
+    </figure>
+
+    <div class="scene-container" id="environment-layer">
+        <figure class="ground"></figure>
+    </div>
+
+    <div class="scene-container" id="shadow-layer">
+        <figure class="scene">
+            <figure class="object sphere">
+                <div class="face"></div>
+            </figure>
+        </figure>
+    </div>
+    <div class="scene-container" id="object-layer">
+        <figure class="scene">
+            <figure class="object sphere">
+                <div class="face">
+                    <div class="sphere-detail"></div>
+                    <div class="sphere-detail"></div>
+                    <div class="sphere-detail"></div>
+                 </div>
+            </figure>
+            <figure id="light"></figure>
+        </figure>
+    </div>
+    <div class="scene-container" id="shade-layer">
+        <figure class="scene">
+            <figure class="object sphere">
+                <div class="face">
+                    <div class="highlight"></div>
+                </div>
+            </figure>
+        </figure>
+    </div>
+
+    <script src="scripts.js"></script>
+</body>
+</html>

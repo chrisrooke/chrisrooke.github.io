@@ -1,0 +1,1089 @@
+/* Setup */
+
+@property --x-pos {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 2;
+}
+@property --y-pos {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --z-pos {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 2;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+body {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    align-items: stretch;
+    transform-style: preserve-3d;
+}
+
+#body {
+    --grid-size: min(75vw, 100vh);
+    --cell-size: 5;
+
+    --object-size: calc(var(--grid-size) / var(--cell-size));
+    --object-size-half: calc(var(--object-size) * .5);
+    --object-size-half-neg: calc(var(--object-size-half) * -1);
+
+    --scene-x-unit: -30;
+    --scene-y-unit: 45;
+    --scene-x: calc(var(--scene-x-unit) * 1deg);
+    --scene-y: calc(var(--scene-y-unit) * 1deg);
+    --scene-x-calc: calc(var(--scene-x) * -1);
+    --scene-y-calc: calc(var(--scene-y) * -1);
+
+    --s-sx: sin(var(--scene-x-calc));
+    --c-sx: cos(var(--scene-x-calc));
+    --s-sy: sin(var(--scene-y-calc));
+    --c-sy: cos(var(--scene-y-calc));
+
+    --scene-normal-11: var(--c-sy);
+    --scene-normal-12: 0;
+    --scene-normal-13: var(--s-sy);
+    --scene-normal-21: calc(var(--s-sx) * var(--s-sy));
+    --scene-normal-22: var(--c-sx);
+    --scene-normal-23: calc(var(--s-sx) * var(--c-sy) * -1);
+    --scene-normal-31: calc(var(--c-sx) * var(--s-sy) * -1);
+    --scene-normal-32: var(--s-sx);
+    --scene-normal-33: calc(var(--c-sx) * var(--c-sy));
+
+    --light-x-unit: 60;
+    --light-y-unit: 0;
+    --light-x: calc(var(--light-x-unit) * 1deg);
+    --light-y: calc(var(--light-y-unit) * 1deg);
+    --light-x-calc: calc(var(--light-x) * -1);
+    --light-y-calc: calc(var(--light-y) * -1);
+
+    --s-lx: sin(var(--light-x-calc));
+    --c-lx: cos(var(--light-x-calc));
+    --s-ly: sin(var(--light-y-calc));
+    --c-ly: cos(var(--light-y-calc));
+
+    /* --light-normal-11: var(--c-ly); */
+    /* --light-normal-12: calc(var(--s-ly) * var(--s-lx)); */
+    --light-normal-13: calc(var(--s-ly) * var(--c-lx));
+    /* --light-normal-21: 0; */
+    /* --light-normal-22: var(--c-lx); */
+    --light-normal-23: calc(-1 * var(--s-lx));
+    /* --light-normal-31: calc(-1 * var(--s-ly)); */
+    /* --light-normal-32: calc(var(--s-lx) * var(--c-ly)); */
+    --light-normal-33: calc(var(--c-lx) * var(--c-ly));
+
+    /* Sphere use */
+    /* --light-scene-normal-11: calc( var(--scene-normal-11) * var(--light-normal-11) + var(--scene-normal-12) * var(--light-normal-21) + var(--scene-normal-13) * var(--light-normal-31)); */
+    /* --light-scene-normal-12: calc( var(--scene-normal-11) * var(--light-normal-12) + var(--scene-normal-12) * var(--light-normal-22) + var(--scene-normal-13) * var(--light-normal-32)); */
+    --light-scene-normal-13: calc( var(--scene-normal-11) * var(--light-normal-13) + var(--scene-normal-12) * var(--light-normal-23) + var(--scene-normal-13) * var(--light-normal-33));
+    /* --light-scene-normal-21: calc( var(--scene-normal-21) * var(--light-normal-11) + var(--scene-normal-22) * var(--light-normal-21) + var(--scene-normal-23) * var(--light-normal-31)); */
+    /* --light-scene-normal-22: calc( var(--scene-normal-21) * var(--light-normal-12) + var(--scene-normal-22) * var(--light-normal-22) + var(--scene-normal-23) * var(--light-normal-32)); */
+    --light-scene-normal-23: calc( var(--scene-normal-21) * var(--light-normal-13) + var(--scene-normal-22) * var(--light-normal-23) + var(--scene-normal-23) * var(--light-normal-33));
+    /* --light-scene-normal-31: calc( var(--scene-normal-31) * var(--light-normal-11) + var(--scene-normal-32) * var(--light-normal-21) + var(--scene-normal-33) * var(--light-normal-31)); */
+    /* --light-scene-normal-32: calc( var(--scene-normal-31) * var(--light-normal-12) + var(--scene-normal-32) * var(--light-normal-22) + var(--scene-normal-33) * var(--light-normal-32)); */
+    --light-scene-normal-33: calc( var(--scene-normal-31) * var(--light-normal-13) + var(--scene-normal-32) * var(--light-normal-23) + var(--scene-normal-33) * var(--light-normal-33));
+
+    --light-adjusted-normal-a: calc(var(--c-lx) * sin(var(--light-y-calc) + var(--scene-y-calc)));
+    --light-adjusted-normal-b: calc((var(--s-lx) * var(--c-sx) * -1) - (var(--s-sx) * var(--c-lx) * cos(var(--light-y-calc) + var(--scene-y-calc))));
+    /* --light-adjusted-normal-c: calc((var(--s-lx) * var(--s-sx) * -1) + (var(--c-lx) * var(--c-sx) * cos(var(--light-y-calc) + var(--scene-y-calc)))); */
+}
+
+/* #body:has(#x-pos > [value="x1"]:checked) { --x-pos: 0; }
+#body:has(#x-pos > [value="x2"]:checked) { --x-pos: 1; }
+#body:has(#x-pos > [value="x3"]:checked) { --x-pos: 2; }
+#body:has(#x-pos > [value="x4"]:checked) { --x-pos: 3; }
+#body:has(#x-pos > [value="x5"]:checked) { --x-pos: 4; }
+#body:has(#y-pos > [value="y1"]:checked) { --y-pos: 0; }
+#body:has(#y-pos > [value="y2"]:checked) { --y-pos: 1; }
+#body:has(#y-pos > [value="y3"]:checked) { --y-pos: 2; }
+#body:has(#y-pos > [value="y4"]:checked) { --y-pos: 3; }
+#body:has(#y-pos > [value="y5"]:checked) { --y-pos: 4; }
+#body:has(#z-pos > [value="z1"]:checked) { --z-pos: 0; }
+#body:has(#z-pos > [value="z2"]:checked) { --z-pos: 1; }
+#body:has(#z-pos > [value="z3"]:checked) { --z-pos: 2; }
+#body:has(#z-pos > [value="z4"]:checked) { --z-pos: 3; }
+#body:has(#z-pos > [value="z5"]:checked) { --z-pos: 4; } */
+
+figure {
+    margin: 0;
+}
+
+
+/* Controls */
+
+#controls {
+    background-color: rgba(0,0,0,0.1);
+    padding: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+    justify-content: flex-end;
+    gap: .5rem;
+}
+
+#controls label {
+    flex-basis: 100%;
+}
+
+#controls span {
+    display: inline-block;
+    /* width: 7ch; */
+    text-align: right;
+}
+
+#controls input {
+    flex-grow: 1;
+}
+
+#controls button {
+    flex-basis: calc(50% - .25rem);
+    margin-top: .5rem;
+    display: block;
+}
+
+
+/* Scene */
+
+.scene-container {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-items: stretch;
+    align-items: stretch;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    /* perspective: 1000px; */
+}
+
+.scene {
+    grid-column: 2;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* transform: rotateX(-30deg) rotateY(-45deg); */
+    transform: rotateX(var(--scene-x)) rotateY(var(--scene-y));
+    will-change: transform;
+}
+
+.ground {
+    /* position: absolute;
+    top: -100%;
+    left: -100%;
+    width: 300%;
+    height: 300%; */
+    width: var(--grid-size);
+    aspect-ratio: 1;
+    margin: 0 auto;
+    background: linear-gradient(to right, rgba(0,0,0,0.1) 0% 1px, rgba(0,0,0,0) 1px calc(100% - 1px), rgba(0,0,0,0.1) calc(100% - 1px) 100%), linear-gradient(to bottom, rgba(0,0,0,0.1) 0% 1px, rgba(0,0,0,0) 1px calc(100% - 1px), rgba(0,0,0,0.1) calc(100% - 1px) 100%);
+    background-size: var(--object-size) var(--object-size);
+    background-repeat: repeat;
+    background-position: center center;
+    border: 1px solid rgba(0,0,0,0.1);
+    transform: rotateX(var(--scene-x)) rotateY(var(--scene-y)) rotateX(90deg) ;
+    pointer-events: none;
+}
+
+#light {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background-color: gold;
+    position: absolute;
+    transform: 
+        /* translateY(var(--elevation))  */
+        rotateY(var(--light-y)) rotateX(var(--light-x)) translateZ(calc(var(--object-size) * 2)) ;
+    will-change: transform;
+}
+
+
+
+/* Object */
+
+.object {
+    --object-x-unit: 0;
+    --object-y-unit: 0;
+    --object-z-unit: 0;
+    --object-x: calc(var(--object-x-unit) * 1deg);
+    --object-y: calc(var(--object-y-unit) * 1deg);
+    --object-z: calc(var(--object-z-unit) * 1deg);
+    --object-x-calc: calc(var(--object-x) * -1);
+    --object-y-calc: calc(var(--object-y) * -1);
+    --object-z-calc: var(--object-z);
+
+    --x-pos: attr(data-x-pos type(<number>));
+    --y-pos: attr(data-y-pos type(<number>));
+    --z-pos: attr(data-z-pos type(<number>));
+
+    --s-ox: sin(var(--object-x-calc));
+    --c-ox: cos(var(--object-x-calc));
+    --s-oy: sin(var(--object-y-calc));
+    --c-oy: cos(var(--object-y-calc));
+    --s-oz: sin(var(--object-z-calc));
+    --c-oz: cos(var(--object-z-calc));
+
+    /* x, y, z coodinates used in that order, would change depending on order of object rotations */
+    --object-normal-11: calc(var(--c-oy) * var(--c-oz));
+    --object-normal-12: calc(var(--s-oz) * var(--c-oy) * -1);
+    --object-normal-13: var(--s-oy);
+    --object-normal-21: calc((var(--s-oz) * var(--c-ox)) + (var(--s-ox) * var(--s-oy) * var(--c-oz)));
+    --object-normal-22: calc((var(--c-ox) * var(--c-oz)) - (var(--s-ox) * var(--s-oy) * var(--s-oz)));
+    --object-normal-23: calc(var(--s-ox) * var(--c-oy) * -1);
+    --object-normal-31: calc((var(--s-ox) * var(--s-oz)) - (var(--s-oy) * var(--c-ox) * var(--c-oz)));
+    --object-normal-32: calc((var(--s-ox) * var(--c-oz)) + (var(--s-oy) * var(--s-oz) * var(--c-ox)));
+    --object-normal-33: calc(var(--c-ox) * var(--c-oy));
+
+    /* Sphere use */
+    /* --object-scene-normal-11: calc( var(--scene-normal-11) * var(--object-normal-11) + var(--scene-normal-12) * var(--object-normal-21) + var(--scene-normal-13) * var(--object-normal-31)); */
+    /* --object-scene-normal-12: calc( var(--scene-normal-11) * var(--object-normal-12) + var(--scene-normal-12) * var(--object-normal-22) + var(--scene-normal-13) * var(--object-normal-32)); */
+    /* --object-scene-normal-13: calc( var(--scene-normal-11) * var(--object-normal-13) + var(--scene-normal-12) * var(--object-normal-23) + var(--scene-normal-13) * var(--object-normal-33)); */
+    /* --object-scene-normal-21: calc( var(--scene-normal-21) * var(--object-normal-11) + var(--scene-normal-22) * var(--object-normal-21) + var(--scene-normal-23) * var(--object-normal-31)); */
+    /* --object-scene-normal-22: calc( var(--scene-normal-21) * var(--object-normal-12) + var(--scene-normal-22) * var(--object-normal-22) + var(--scene-normal-23) * var(--object-normal-32)); */
+    /* --object-scene-normal-23: calc( var(--scene-normal-21) * var(--object-normal-13) + var(--scene-normal-22) * var(--object-normal-23) + var(--scene-normal-23) * var(--object-normal-33)); */
+    --object-scene-normal-31: calc( var(--scene-normal-31) * var(--object-normal-11) + var(--scene-normal-32) * var(--object-normal-21) + var(--scene-normal-33) * var(--object-normal-31));
+    --object-scene-normal-32: calc( var(--scene-normal-31) * var(--object-normal-12) + var(--scene-normal-32) * var(--object-normal-22) + var(--scene-normal-33) * var(--object-normal-32));
+    --object-scene-normal-33: calc( var(--scene-normal-31) * var(--object-normal-13) + var(--scene-normal-32) * var(--object-normal-23) + var(--scene-normal-33) * var(--object-normal-33));
+
+    /* Cylinder use */
+    --light-cylinder-normal-a: calc(var(--object-normal-11) * var(--light-normal-13) + var(--object-normal-21) * var(--light-normal-23) + var(--object-normal-31) * var(--light-normal-33));
+    /* --light-cylinder-normal-b: calc(var(--object-normal-12) * var(--light-normal-13) + var(--object-normal-22) * var(--light-normal-23) + var(--object-normal-32) * var(--light-normal-33)); */
+    --light-cylinder-normal-c: calc(var(--object-normal-13) * var(--light-normal-13) + var(--object-normal-23) * var(--light-normal-23) + var(--object-normal-33) * var(--light-normal-33));
+
+    --px: calc(var(--object-scene-normal-31) / (sqrt(pow(var(--object-scene-normal-31), 2) + pow(var(--object-scene-normal-33), 2))));
+    --pz: calc(var(--object-scene-normal-33) / (sqrt(pow(var(--object-scene-normal-31), 2) + pow(var(--object-scene-normal-33), 2))));
+    --light-px: calc(var(--light-cylinder-normal-a) / (sqrt(pow(var(--light-cylinder-normal-a), 2) + pow(var(--light-cylinder-normal-c), 2))));
+    --light-pz: calc(var(--light-cylinder-normal-c) / (sqrt(pow(var(--light-cylinder-normal-a), 2) + pow(var(--light-cylinder-normal-c), 2))));
+
+    --corner-Rx: calc(cos(var(--object-x)) * sin(var(--object-z)) + sin(var(--object-x)) * sin(var(--object-y)) * cos(var(--object-z)));
+    --corner-Ry: calc(cos(var(--object-x)) * cos(var(--object-z)) - sin(var(--object-x)) * sin(var(--object-y)) * sin(var(--object-z)));
+    --corner-Rz: calc(sin(var(--object-x)) * cos(var(--object-y)));
+
+    --elevation-manual: 0px;
+    /* --elevation: min(var(--elevation-surface), calc(var(--elevation-manual) * -1)); */
+    /* --elevation: calc(var(--elevation-surface) - var(--elevation-manual)); */
+    --elevation: calc(var(--elevation-surface) - var(--y-pos) * var(--object-size));
+
+    width: var(--object-size);
+    aspect-ratio: 1;
+    transform-style: preserve-3d;
+    position: absolute;
+    top: calc(50% - (var(--object-size) / 2));
+    left: calc(50% - (var(--object-size) / 2));
+    transform: 
+        translateX(calc((var(--x-pos) - (var(--cell-size) / (var(--cell-size) / 2))) * var(--object-size)))
+        translateY(var(--elevation))
+        translateZ(calc((var(--z-pos) - (var(--cell-size) / (var(--cell-size) / 2))) * var(--object-size)))
+        rotateX(var(--object-x))
+        rotateY(var(--object-y))
+        rotateZ(var(--object-z));
+    will-change: transform;
+    transition: --x-pos .25s ease-in-out, --y-pos .25s ease-in-out, --z-pos .25s ease-in-out;
+}
+
+.face {
+    --face-y-deg: 0deg;
+    --face-x-deg: 0deg;
+    --face-x-calc: calc(var(--face-x-deg) * -1);
+    --face-y-calc: calc(var(--face-y-deg) * -1);
+
+    --s-fx: sin(var(--face-x-calc));
+    --c-fx: cos(var(--face-x-calc));
+    --s-fy: sin(var(--face-y-calc));
+    --c-fy: cos(var(--face-y-calc));
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotateY(var(--face-y-deg)) rotateX(var(--face-x-deg)) translateZ(var(--face-translate));
+    transform-style: preserve-3d;
+}
+.face.top {
+    --face-x-deg: 90deg;
+}
+.face.bottom {
+    --face-x-deg: -90deg;
+
+}
+
+#object-layer .face::before, #object-layer .face::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+}
+
+#object-layer .face::before {
+    background-color: #FB8DA0;
+    border: 1px solid #fb6b90;
+}
+
+#object-layer .face::after {
+    background-color: #04946f;
+    border: 1px solid #04725f;
+    transform: rotateY(180deg);
+}
+
+
+
+/* Shading */
+
+#shade-layer {
+    mix-blend-mode: overlay;
+}
+
+#shade-layer .face {
+    --face-normal-11: var(--c-fy);
+    --face-normal-12: calc(var(--s-fy) * var(--s-fx));
+    --face-normal-13: calc(var(--s-fy) * var(--c-fx));
+    --face-normal-21: 0;
+    --face-normal-22: var(--c-fx);
+    --face-normal-23: calc(-1 * var(--s-fx));
+    --face-normal-31: calc(-1 * var(--s-fy));
+    --face-normal-32: calc(var(--s-fx) * var(--c-fy));
+    --face-normal-33: calc(var(--c-fx) * var(--c-fy));
+
+    --face-object-normal-11: calc(var(--object-normal-11) * var(--face-normal-11) + var(--object-normal-12) * var(--face-normal-21) + var(--object-normal-13) * var(--face-normal-31));
+    /* --face-object-normal-12: calc(var(--object-normal-11) * var(--face-normal-12) + var(--object-normal-12) * var(--face-normal-22) + var(--object-normal-13) * var(--face-normal-32)); */
+    /* --face-object-normal-13: calc(var(--object-normal-11) * var(--face-normal-13) + var(--object-normal-12) * var(--face-normal-23) + var(--object-normal-13) * var(--face-normal-33)); */
+    --face-object-normal-21: calc(var(--object-normal-21) * var(--face-normal-11) + var(--object-normal-22) * var(--face-normal-21) + var(--object-normal-23) * var(--face-normal-31));
+    /* --face-object-normal-22: calc(var(--object-normal-21) * var(--face-normal-12) + var(--object-normal-22) * var(--face-normal-22) + var(--object-normal-23) * var(--face-normal-32));
+    --face-object-normal-23: calc(var(--object-normal-21) * var(--face-normal-13) + var(--object-normal-22) * var(--face-normal-23) + var(--object-normal-23) * var(--face-normal-33)); */
+    --face-object-normal-31: calc(var(--object-normal-31) * var(--face-normal-11) + var(--object-normal-32) * var(--face-normal-21) + var(--object-normal-33) * var(--face-normal-31));
+    /* --face-object-normal-32: calc(var(--object-normal-31) * var(--face-normal-12) + var(--object-normal-32) * var(--face-normal-22) + var(--object-normal-33) * var(--face-normal-32));
+    --face-object-normal-33: calc(var(--object-normal-31) * var(--face-normal-13) + var(--object-normal-32) * var(--face-normal-23) + var(--object-normal-33) * var(--face-normal-33)); */
+
+    --face-object-scene-normal-11: calc(var(--scene-normal-11) * var(--face-object-normal-11) + var(--scene-normal-12) * var(--face-object-normal-21) + var(--scene-normal-13) * var(--face-object-normal-31));
+    /* --face-object-scene-normal-12: calc(var(--scene-normal-11) * var(--face-object-normal-12) + var(--scene-normal-12) * var(--face-object-normal-22) + var(--scene-normal-13) * var(--face-object-normal-32)); */
+    /* --face-object-scene-normal-13: calc(var(--scene-normal-11) * var(--face-object-normal-13) + var(--scene-normal-12) * var(--face-object-normal-23) + var(--scene-normal-13) * var(--face-object-normal-33)); */
+    --face-object-scene-normal-21: calc(var(--scene-normal-21) * var(--face-object-normal-11) + var(--scene-normal-22) * var(--face-object-normal-21) + var(--scene-normal-23) * var(--face-object-normal-31));
+    /* --face-object-scene-normal-22: calc(var(--scene-normal-21) * var(--face-object-normal-12) + var(--scene-normal-22) * var(--face-object-normal-22) + var(--scene-normal-23) * var(--face-object-normal-32)); */
+    /* --face-object-scene-normal-23: calc(var(--scene-normal-21) * var(--face-object-normal-13) + var(--scene-normal-22) * var(--face-object-normal-23) + var(--scene-normal-23) * var(--face-object-normal-33)); */
+    --face-object-scene-normal-31: calc(var(--scene-normal-31) * var(--face-object-normal-11) + var(--scene-normal-32) * var(--face-object-normal-21) + var(--scene-normal-33) * var(--face-object-normal-31));
+    /* --face-object-scene-normal-32: calc(var(--scene-normal-31) * var(--face-object-normal-12) + var(--scene-normal-32) * var(--face-object-normal-22) + var(--scene-normal-33) * var(--face-object-normal-32)); */
+    /* --face-object-scene-normal-33: calc(var(--scene-normal-31) * var(--face-object-normal-13) + var(--scene-normal-32) * var(--face-object-normal-23) + var(--scene-normal-33) * var(--face-object-normal-33)); */
+
+    --face-rotated-normal-a: calc(var(--face-normal-13) * var(--object-normal-11) + var(--face-normal-23) * var(--object-normal-12) + var(--face-normal-33) * var(--object-normal-13));
+    --face-rotated-normal-b: calc(var(--face-normal-13) * var(--object-normal-21) + var(--face-normal-23) * var(--object-normal-22) + var(--face-normal-33) * var(--object-normal-23));
+    --face-rotated-normal-c: calc(var(--face-normal-13) * var(--object-normal-31) + var(--face-normal-23) * var(--object-normal-32) + var(--face-normal-33) * var(--object-normal-33));
+
+    --dot-product: calc((var(--face-rotated-normal-a) * var(--light-normal-13)) + (var(--face-rotated-normal-b) * var(--light-normal-23)) + (var(--face-rotated-normal-c) * var(--light-normal-33)));
+    --dot-product-light-scene-face-object-scene-x: calc(var(--light-scene-normal-13) * var(--face-object-scene-normal-11) + var(--light-scene-normal-23) * var(--face-object-scene-normal-21) + var(--light-scene-normal-33) * var(--face-object-scene-normal-31));
+}
+
+#shade-layer .face::before, #shade-layer .face::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: hsl(0 0 var(--lightness));
+    backface-visibility: hidden;
+}
+
+#shade-layer .face::before {
+    --lightness: calc(50% + 25% * var(--dot-product));
+}
+#shade-layer .face::after {
+    --lightness: calc(50% - 25% * var(--dot-product));
+    transform: rotateY(180deg);
+}
+
+
+
+/* Shadow */
+
+#shadow-layer {
+    mix-blend-mode: multiply;
+}
+
+#shadow-layer .scene {
+    transform: rotateX(var(--scene-x)) rotateY(var(--scene-y)) rotateX(90deg) rotateZ(calc(var(--light-y) * -1));
+    transform-style: unset;
+}
+
+#shadow-layer .object {
+    transform: 
+        translateY(calc((var(--elevation) / sin(var(--light-x))) * cos(var(--light-x)) * 1))
+        scaleY(calc(1 / sin(var(--light-x))))   
+        rotateX(calc(var(--light-x) * -1)) 
+        rotateY(calc(var(--light-y) * -1))
+        translateX(calc((var(--x-pos) - (var(--cell-size) / (var(--cell-size) / 2))) * var(--object-size)))
+        translateZ(calc((var(--z-pos) - (var(--cell-size) / (var(--cell-size) / 2))) * var(--object-size)))
+        rotateX(var(--object-x)) 
+        rotateY(var(--object-y)) 
+        rotateZ(var(--object-z))
+    ;
+}
+
+#shadow-layer .face {
+    background-color: hsl(0 0 62.5%);
+}
+
+
+
+/* Cube */
+
+.cube {
+    --corner1: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner2: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner3: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner4: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner5: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner6: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner7: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner8: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+
+    /* --elevation-surface: calc((max(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8)) - min(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8))) / 2); */
+    --elevation-surface: calc(min(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8)));
+}
+
+.cube .face {
+    --face-translate: var(--object-size-half);
+}
+.cube .face.right {
+    --face-y-deg: 90deg;
+}
+.cube .face.left {
+    --face-y-deg: -90deg;
+}
+.cube .face.back {
+    --face-y-deg: 180deg;
+}
+
+
+
+/* Pyramid */
+
+.pyramid {
+    --side-x-angle: 63.435deg;
+    --side-x-angle: atan(calc(.5/1));
+    --side-height: calc(sqrt((pow(.5,2) + pow(1,2))) * var(--object-size));
+
+    --corner1: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner2: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner3: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner4: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner5: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner6: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner7: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner8: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+
+    --elevation-surface: calc(min(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8)));
+}
+
+.pyramid .face {
+    --face-translate: var(--object-size-half);
+    --clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+    transform: rotateY(var(--face-y-deg)) translateZ(var(--face-translate))  rotateX(var(--face-x-deg));
+}
+.pyramid .face:not(.bottom) {
+    --face-x-deg: var(--side-x-angle);
+    top: unset;
+    bottom: 0;
+    transform-origin: 50% 100%;
+    height: var(--side-height);
+}
+.pyramid .face.right {
+    --face-y-deg: 90deg;
+}
+.pyramid .face.left {
+    --face-y-deg: -90deg;
+}
+.pyramid .face.back {
+    --face-y-deg: 180deg;
+}
+.pyramid .face.bottom {     
+    transform: rotateY(var(--face-y-deg)) rotateX(var(--face-x-deg)) translateZ(var(--face-translate)) ;
+}
+
+.pyramid .face:not(.bottom)::before, .pyramid .face:not(.bottom)::after {
+    clip-path: var(--clip-path);
+}
+#shadow-layer .pyramid .face:not(.bottom) {
+    clip-path: var(--clip-path);
+}
+
+
+
+/* Tetrahedron */
+
+.tetrahedron {
+    --side-x-angle: 19.471deg;
+    --corner1: calc((var(--corner-Rx) * 0px) + (var(--corner-Ry) * (var(--object-size) * .5 * cos(var(--side-x-angle)))) - (var(--corner-Rz) * 0px));
+    --corner2: calc((var(--corner-Rx) * (var(--object-size) * .4330127019)) + (var(--corner-Ry) * (var(--object-size) * -0.25 * cos(var(--side-x-angle)))) - (var(--corner-Rz) * (var(--object-size) * -.25)));
+    --corner3: calc((var(--corner-Rx) * (var(--object-size) * -.4330127019)) + (var(--corner-Ry) * (var(--object-size) * -0.25 * cos(var(--side-x-angle)))) - (var(--corner-Rz) * (var(--object-size) * -.25)));
+    --corner4: calc((var(--corner-Rx) * 0px) + (var(--corner-Ry) * (var(--object-size) * -0.25 * cos(var(--side-x-angle)))) - (var(--corner-Rz) * (var(--object-size) * .5)));
+    --elevation-surface: calc(min(var(--corner1), var(--corner2), var(--corner3), var(--corner4)));
+}
+
+.tetrahedron .face {
+    --face-translate: calc(var(--object-size-half) * sin(var(--side-x-angle)));
+    --clip-path: polygon(50% 0%, 6.69872981% 75%, 93.30127019% 75%);
+    transform: rotateY(var(--face-y-deg)) translateZ(var(--face-translate)) rotateX(var(--face-x-deg));
+}
+.tetrahedron .face:not(.bottom) {
+    --face-x-deg: var(--side-x-angle);
+}
+.tetrahedron .face.right {
+    --face-y-deg: 120deg;
+}
+.tetrahedron .face.left {
+    --face-y-deg: 240deg;
+}
+.tetrahedron .face.bottom {     
+    --face-y-deg: 180deg;
+    --face-translate: calc(var(--object-size) * .25 * cos(var(--side-x-angle)));
+    transform: rotateY(var(--face-y-deg)) rotateX(var(--face-x-deg)) translateZ(var(--face-translate)) ;
+}
+
+.tetrahedron .face::before, .tetrahedron .face::after {
+    clip-path: var(--clip-path);
+}
+#shadow-layer .tetrahedron .face {
+    clip-path: var(--clip-path);
+}
+
+
+
+/* Dodecahedron */
+
+.dodecahedron {
+    /* --pentagon-height: calc(var(--object-size) * (0.5 - var(--pentagon-bl-y))); */
+    --dodecahedron-angle: atan(2);
+    --phi: calc((1 + sqrt(5)) / 2);
+    --face-translate: calc(var(--object-size-half) * (pow(var(--phi), 2) / 2));
+
+    --pentagon-top-x: 0;                    /* calc((0.5 * cos(90deg + 0 * 72deg))); */
+    --pentagon-top-y: 0.5;                  /* calc((0.5 * sin(90deg + 0 * 72deg))); */
+    --pentagon-tl-x: -0.47552825814;        /* calc((0.5 * cos(90deg + 1 * 72deg))); */
+    --pentagon-tl-y: 0.15450849719;         /* calc((0.5 * sin(90deg + 1 * 72deg))); */
+    --pentagon-bl-x: -0.29389262614;        /* calc((0.5 * cos(90deg + 2 * 72deg))); */
+    --pentagon-bl-y: -0.40450849719;        /* calc((0.5 * sin(90deg + 2 * 72deg))); */
+    --pentagon-br-x: 0.29389262614;         /* calc((0.5 * cos(90deg + 3 * 72deg))); */
+    --pentagon-br-y: -0.40450849719;        /* calc((0.5 * sin(90deg + 3 * 72deg))); */
+    --pentagon-tr-x: 0.47552825814;         /* calc((0.5 * cos(90deg + 4 * 72deg))); */
+    --pentagon-tr-y: 0.15450849719;         /* calc((0.5 * sin(90deg + 4 * 72deg))); */
+
+    --c-90: 0;                    /* cos(90deg) */
+    --s-90: 1;                    /* sin(90deg) */
+    --c-162: -0.95105651629;      /* cos(162deg) */
+    --s-162: 0.30901699437;       /* sin(162deg) */
+    --c-234: -0.58778525229;      /* cos(234deg) */
+    --s-234: -0.80901699437;      /* sin(234deg) */
+    --c-306: 0.58778525229;       /* cos(306deg) */
+    --s-306: -0.80901699437;      /* sin(306deg) */
+    --c-18: 0.95105651629;        /* cos(18deg) */
+    --s-18: 0.30901699437;        /* sin(18deg) */
+
+    --dodecahedron-midcorner-depth: calc(var(--pentagon-bl-y) * 2 * var(--object-size));
+    --dodecahedron-midcorner-height: calc(var(--face-translate) + var(--dodecahedron-midcorner-depth));
+
+    --corner1: calc((var(--corner-Rx) * var(--pentagon-top-x) * var(--object-size)) + (var(--corner-Ry) * var(--face-translate)) - (var(--corner-Rz) * var(--pentagon-top-y) * var(--object-size)));
+    --corner2: calc((var(--corner-Rx) * var(--pentagon-tl-x) * var(--object-size)) + (var(--corner-Ry) * var(--face-translate)) - (var(--corner-Rz) * var(--pentagon-tl-y) * var(--object-size)));
+    --corner3: calc((var(--corner-Rx) * var(--pentagon-bl-x) * var(--object-size)) + (var(--corner-Ry) * var(--face-translate)) - (var(--corner-Rz) * var(--pentagon-bl-y) * var(--object-size)));
+    --corner4: calc((var(--corner-Rx) * var(--pentagon-br-x) * var(--object-size)) + (var(--corner-Ry) * var(--face-translate)) - (var(--corner-Rz) * var(--pentagon-br-y) * var(--object-size)));
+    --corner5: calc((var(--corner-Rx) * var(--pentagon-tr-x) * var(--object-size)) + (var(--corner-Ry) * var(--face-translate)) - (var(--corner-Rz) * var(--pentagon-tr-y) * var(--object-size)));
+    --corner6: calc((var(--corner-Rx) * var(--pentagon-top-x) * var(--object-size) * -1) + (var(--corner-Ry) * var(--face-translate) * -1) - (var(--corner-Rz) * var(--pentagon-top-y) * var(--object-size) * -1));
+    --corner7: calc((var(--corner-Rx) * var(--pentagon-tl-x) * var(--object-size) * -1) + (var(--corner-Ry) * var(--face-translate) * -1) - (var(--corner-Rz) * var(--pentagon-tl-y) * var(--object-size) * -1));
+    --corner8: calc((var(--corner-Rx) * var(--pentagon-bl-x) * var(--object-size) * -1) + (var(--corner-Ry) * var(--face-translate) * -1) - (var(--corner-Rz) * var(--pentagon-bl-y) * var(--object-size) * -1));
+    --corner9: calc((var(--corner-Rx) * var(--pentagon-br-x) * var(--object-size) * -1) + (var(--corner-Ry) * var(--face-translate) * -1) - (var(--corner-Rz) * var(--pentagon-br-y) * var(--object-size) * -1));
+    --corner10: calc((var(--corner-Rx) * var(--pentagon-tr-x) * var(--object-size) * -1) + (var(--corner-Ry) * var(--face-translate) * -1) - (var(--corner-Rz) * var(--pentagon-tr-y) * var(--object-size) * -1));
+
+    --corner11: calc(
+        (var(--corner-Rx) * var(--c-90) * var(--dodecahedron-midcorner-depth)) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height)) -
+        (var(--corner-Rz) * var(--s-90) * var(--dodecahedron-midcorner-depth))
+    );
+    --corner12: calc(
+        (var(--corner-Rx) * var(--c-162) * var(--dodecahedron-midcorner-depth)) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height)) -
+        (var(--corner-Rz) * var(--s-162) * var(--dodecahedron-midcorner-depth))
+    );
+    --corner13: calc(
+        (var(--corner-Rx) * var(--c-234) * var(--dodecahedron-midcorner-depth)) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height)) -
+        (var(--corner-Rz) * var(--s-234) * var(--dodecahedron-midcorner-depth))
+    );
+    --corner14: calc(
+        (var(--corner-Rx) * var(--c-306) * var(--dodecahedron-midcorner-depth)) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height)) -
+        (var(--corner-Rz) * var(--s-306) * var(--dodecahedron-midcorner-depth))
+    );
+    --corner15: calc(
+        (var(--corner-Rx) * var(--c-18) * var(--dodecahedron-midcorner-depth)) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height)) -
+        (var(--corner-Rz) * var(--s-18) * var(--dodecahedron-midcorner-depth))
+    );
+    --corner16: calc(
+        (var(--corner-Rx) * var(--c-90) * var(--dodecahedron-midcorner-depth) * -1) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height) * -1) -
+        (var(--corner-Rz) * var(--s-90) * var(--dodecahedron-midcorner-depth) * -1)
+    );
+    --corner17: calc(
+        (var(--corner-Rx) * var(--c-162) * var(--dodecahedron-midcorner-depth) * -1) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height) * -1) -
+        (var(--corner-Rz) * var(--s-162) * var(--dodecahedron-midcorner-depth) * -1)
+    );
+    --corner18: calc(
+        (var(--corner-Rx) * var(--c-234) * var(--dodecahedron-midcorner-depth) * -1) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height) * -1) -
+        (var(--corner-Rz) * var(--s-234) * var(--dodecahedron-midcorner-depth) * -1)
+    );
+    --corner19: calc(
+        (var(--corner-Rx) * var(--c-306) * var(--dodecahedron-midcorner-depth) * -1) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height) * -1) -
+        (var(--corner-Rz) * var(--s-306) * var(--dodecahedron-midcorner-depth) * -1)
+    );
+    --corner20: calc(
+        (var(--corner-Rx) * var(--c-18) * var(--dodecahedron-midcorner-depth) * -1) +
+        (var(--corner-Ry) * var(--dodecahedron-midcorner-height) * -1) -
+        (var(--corner-Rz) * var(--s-18) * var(--dodecahedron-midcorner-depth) * -1)
+    );
+    --elevation-surface: calc(min(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8), var(--corner9), var(--corner10), var(--corner11), var(--corner12), var(--corner13), var(--corner14), var(--corner15), var(--corner16), var(--corner17), var(--corner18), var(--corner19), var(--corner20)));
+}
+
+.dodecahedron .face {
+    /* --clip-path: polygon(
+    calc((1 - (0.5 + 0.5 * cos(90deg + 2 * 0 * 36deg))) * 100%)
+        calc((1 - (0.5 + 0.5 * sin(90deg + 2 * 0 * 36deg))) * 100%),
+    calc((1 - (0.5 + 0.5 * cos(90deg + 2 * 1 * 36deg))) * 100%)
+        calc((1 - (0.5 + 0.5 * sin(90deg + 2 * 1 * 36deg))) * 100%),
+    calc((1 - (0.5 + 0.5 * cos(90deg + 2 * 2 * 36deg))) * 100%)
+        calc((1 - (0.5 + 0.5 * sin(90deg + 2 * 2 * 36deg))) * 100%),
+    calc((1 - (0.5 + 0.5 * cos(90deg + 2 * 3 * 36deg))) * 100%)
+        calc((1 - (0.5 + 0.5 * sin(90deg + 2 * 3 * 36deg))) * 100%),
+    calc((1 - (0.5 + 0.5 * cos(90deg + 2 * 4 * 36deg))) * 100%)
+        calc((1 - (0.5 + 0.5 * sin(90deg + 2 * 4 * 36deg))) * 100%)
+    ); */
+    --clip-path: polygon(
+        50% 0%,
+        2.45% 34.55%,
+        20.61% 90.45%,
+        79.39% 90.45%,
+        97.55% 34.55%
+    );
+
+}
+
+.dodecahedron .face:first-child {
+    --face-x-deg: -90deg;
+    --face-y-deg: 0deg;
+}
+.dodecahedron .face:nth-child(2) {
+    --face-x-deg: calc(var(--dodecahedron-angle) - 90deg);
+    --face-y-deg: 36deg;
+}
+.dodecahedron .face:nth-child(3) {
+    --face-x-deg: calc(var(--dodecahedron-angle) - 90deg);
+    --face-y-deg: 108deg;
+}
+.dodecahedron .face:nth-child(4) {
+    --face-x-deg: calc(var(--dodecahedron-angle) - 90deg);
+    --face-y-deg: 180deg;
+}
+.dodecahedron .face:nth-child(5) {
+    --face-x-deg: calc(var(--dodecahedron-angle) - 90deg);
+    --face-y-deg: 252deg;
+}
+.dodecahedron .face:nth-child(6) {
+    --face-x-deg: calc(var(--dodecahedron-angle) - 90deg);
+    --face-y-deg: 324deg;
+}
+.dodecahedron .face:nth-child(7) {
+    --face-x-deg: 90deg;
+    --face-y-deg: 0deg;
+}
+.dodecahedron .face:nth-child(8) {
+    --face-x-deg: calc(var(--dodecahedron-angle) + 90deg);
+    --face-y-deg: 36deg;
+}
+.dodecahedron .face:nth-child(9) {
+    --face-x-deg: calc(var(--dodecahedron-angle) + 90deg);
+    --face-y-deg: 108deg;
+}
+.dodecahedron .face:nth-child(10) {
+    --face-x-deg: calc(var(--dodecahedron-angle) + 90deg);
+    --face-y-deg: 180deg;
+}
+.dodecahedron .face:nth-child(11) {
+    --face-x-deg: calc(var(--dodecahedron-angle) + 90deg);
+    --face-y-deg: 252deg;
+}
+.dodecahedron .face:nth-child(12) {
+    --face-x-deg: calc(var(--dodecahedron-angle) + 90deg);
+    --face-y-deg: 324deg;
+}
+
+.dodecahedron .face::before, .dodecahedron .face::after {
+    clip-path: var(--clip-path);
+}
+#shadow-layer .dodecahedron .face {
+    clip-path: var(--clip-path);
+}
+
+
+
+/* Sphere */
+
+.sphere {
+    --elevation-surface: var(--object-size-half-neg);
+    transform: 
+        translateY(var(--elevation))
+        rotateY(calc(var(--scene-y) * -1)) 
+        rotateX(calc(var(--scene-x) * -1))
+    ;
+}
+
+.sphere .face, .sphere .face::before, .sphere .face::after {
+    border-radius: 50%;
+}
+
+#shade-layer .sphere .face {
+    --lighting-translate: 0;
+    --lighting-bg-angle: calc(90deg + (atan2(var(--light-adjusted-normal-b), var(--light-adjusted-normal-a))));
+    background-image: linear-gradient(var(--lighting-bg-angle), hsl(0 0 62.5%) 0% 50%, hsl(0 0 37.5%) 50% 100%);
+}
+
+#shade-layer .sphere .face::before, #shade-layer .sphere .face::after, #shade-layer .sphere .highlight {
+    --shade-angle: 0deg;
+    transform: 
+        rotateX(var(--scene-x))
+        rotateY(var(--scene-y)) 
+        rotateY(var(--light-y)) 
+        rotateX(var(--light-x))   
+        rotateY(var(--shade-angle))
+        translateZ(var(--lighting-translate))             
+    ;
+}
+
+#shade-layer .sphere .highlight {
+    content: '';
+    position: absolute;
+    backface-visibility: hidden;
+    border-radius: 50%;
+    top: calc(50% - 10px);
+    left: calc(50% - 10px);
+    width: 20px;
+    height: 20px;
+    background-color: hsl(0 0 75%);
+    --lighting-translate: var(--object-size-half);
+}
+
+#shade-layer .sphere .face::before {
+    background-color: hsl(0 0 62.5%)
+}
+#shade-layer .sphere .face::after {
+    --shade-angle: 180deg;
+    background-color: hsl(0 0 37.5%)
+}
+
+#shadow-layer .sphere {
+    transform: 
+        translateY(calc((var(--elevation) / sin(var(--light-x))) * cos(var(--light-x)) * 1))
+        scaleY(calc(1 / sin(var(--light-x))))   
+        rotateX(calc(var(--light-x) * -1)) 
+        rotateY(calc(var(--light-y) * -1))
+    ;
+}
+
+#shadow-layer .sphere .face {
+    transform: rotateY(var(--light-y)) rotateX(var(--light-x));
+}
+
+/* Sample Detail */
+
+.sphere-detail, .sphere-detail::before, .sphere-detail::after {
+    --initial-x: 0deg;
+    --initial-y: 0deg;
+    --initial-z: 0deg;
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* background-color: purple; */
+    transform:
+        rotateX(var(--scene-x))
+        rotateY(var(--scene-y)) 
+        rotateX(var(--object-x))
+        rotateY(var(--object-y))
+        rotateZ(var(--object-z))
+        rotateZ(var(--initial-z))
+        rotateX(var(--initial-x))
+        rotateY(var(--initial-y))
+    ;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.33);
+    transform-style: preserve-3d;
+}
+
+.sphere-detail::before {
+    transform: rotateY(30deg);
+}
+
+.sphere-detail::after {
+    transform: rotateY(60deg);
+}
+
+.sphere-detail:nth-child(2n) {
+    --initial-y: 90deg;
+}
+
+.sphere-detail:nth-child(n+3) {
+    --initial-x: 90deg;
+}
+
+.sphere-detail:nth-child(n+3)::before, .sphere-detail:nth-child(n+3)::after {
+    width: calc(var(--object-size-half) * sqrt(3));
+    height: calc(var(--object-size-half) * sqrt(3));
+    transform: translateZ(calc(var(--object-size) / 4));
+    top: calc((var(--object-size) - (var(--object-size-half) * sqrt(3)) - 4px) / 2);
+    left: calc((var(--object-size) - (var(--object-size-half) * sqrt(3)) - 4px) / 2);
+} 
+.sphere-detail:nth-child(n+3)::after {
+    transform: translateZ(calc(var(--object-size) / -4));
+}
+
+
+
+/* Cylindrical */
+
+.cylinder, .cone {
+    --corner1: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner2: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner3: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner4: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner5: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner6: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner7: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner8: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+
+    /* --elevation-surface: calc((max(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8)) - min(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8))) / 2); */
+    --elevation-surface: calc(min(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8)));
+}
+
+.cylinder .face, .cone .face {
+    --face-translate: 0;
+}
+
+.cylinder .face:not(.front), .cone .face.bottom {
+    --face-translate: var(--object-size-half);
+    border-radius: 50%;
+}
+
+.cylinder .face:not(.front)::before, .cylinder .face:not(.front)::after, .cone .face.bottom::before, .cone .face.bottom::after {
+    border-radius: 50%;
+}
+
+.cylinder .face.front, .cone .face.front {
+    --face-y-deg: calc(atan2(var(--px) * -1, var(--pz)));
+}
+
+#object-layer .cylinder .face::after, #object-layer .cone .face::after {
+    background-color: #FB8DA0;
+}
+
+#shadow-layer .cylinder .face.front, #shadow-layer .cone .face.front {
+    --face-y-deg: calc(atan2(var(--light-px) * -1, var(--light-pz)));
+}
+
+#shade-layer .cylinder, #shade-layer .cone {
+    --face-x-deg: 0deg;
+    --face-x-calc: calc(var(--face-x-deg) * -1);
+    --s-fx: sin(var(--face-x-calc));
+    --c-fx: cos(var(--face-x-calc));
+
+    --face-bright-y-deg: calc(atan2(calc(var(--light-cylinder-normal-a) * -1),var(--light-cylinder-normal-c)));
+    --face-dark-y-deg: calc(180deg + atan2(calc(var(--light-cylinder-normal-a) * -1),var(--light-cylinder-normal-c)));
+    --face-bright-y-calc: calc(var(--face-bright-y-deg) * -1);
+    --face-dark-y-calc: calc(var(--face-dark-y-deg) * -1);
+
+    --face-bright-normal-a: calc(sin(var(--face-bright-y-calc)) * var(--c-fx));
+    --face-bright-normal-b: calc(-1 * var(--s-fx));
+    --face-bright-normal-c: calc(var(--c-fx) * cos(var(--face-bright-y-calc)));
+
+    --face-bright-rotated-normal-a: calc(var(--face-bright-normal-a) * var(--object-normal-11) + var(--face-bright-normal-b) * var(--object-normal-12) + var(--face-bright-normal-c) * var(--object-normal-13));
+    --face-bright-rotated-normal-b: calc(var(--face-bright-normal-a) * var(--object-normal-21) + var(--face-bright-normal-b) * var(--object-normal-22) + var(--face-bright-normal-c) * var(--object-normal-23));
+    --face-bright-rotated-normal-c: calc(var(--face-bright-normal-a) * var(--object-normal-31) + var(--face-bright-normal-b) * var(--object-normal-32) + var(--face-bright-normal-c) * var(--object-normal-33));
+
+    --bright-dot-product: calc((var(--face-bright-rotated-normal-a) * var(--light-normal-13)) + (var(--face-bright-rotated-normal-b) * var(--light-normal-23)) + (var(--face-bright-rotated-normal-c) * var(--light-normal-33)));
+
+    --face-dark-normal-a: calc(sin(var(--face-dark-y-calc)) * var(--c-fx));
+    --face-dark-normal-b: calc(-1 * var(--s-fx));
+    --face-dark-normal-c: calc(var(--c-fx) * cos(var(--face-dark-y-calc)));
+
+    --face-dark-rotated-normal-a: calc(var(--face-dark-normal-a) * var(--object-normal-11) + var(--face-dark-normal-b) * var(--object-normal-12) + var(--face-dark-normal-c) * var(--object-normal-13));
+    --face-dark-rotated-normal-b: calc(var(--face-dark-normal-a) * var(--object-normal-21) + var(--face-dark-normal-b) * var(--object-normal-22) + var(--face-dark-normal-c) * var(--object-normal-23));
+    --face-dark-rotated-normal-c: calc(var(--face-dark-normal-a) * var(--object-normal-31) + var(--face-dark-normal-b) * var(--object-normal-32) + var(--face-dark-normal-c) * var(--object-normal-33));
+
+    --dark-dot-product: calc((var(--face-dark-rotated-normal-a) * var(--light-normal-13)) + (var(--face-dark-rotated-normal-b) * var(--light-normal-23)) + (var(--face-dark-rotated-normal-c) * var(--light-normal-33)));
+
+    --lightness-bright: calc(50% + 12.5% * var(--bright-dot-product));
+    --lightness-dark: calc(50% + 12.5% * var(--dark-dot-product));
+    background: linear-gradient(calc(90deg + var(--background-rotation)), hsl(0 0 var(--lightness-bright)) 0% 50%, hsl(0 0 var(--lightness-dark)) 50% 100%);
+}
+
+#shade-layer .cylinder .face.front::before, #shade-layer .cone .face.front::before, #shade-layer .cone .face.left::before, #shade-layer .cone .face.right::before {
+    background: linear-gradient(90deg, hsl(0 0 var(--lightness-bright)) 0% 50%, hsl(0 0 var(--lightness-dark)) 50% 100%);
+    transform: scaleX(calc(2 * clamp(-1, round(down, var(--dot-product-light-scene-face-object-scene-x)), 0) + 1))
+}
+ 
+#shade-layer .cylinder .face::after, #shade-layer .cone .face::after {
+    content: unset;
+}
+
+#shade-layer .cylinder .face.front .cylinder-lighting, #shade-layer .cylinder .face.front .cylinder-top-bottom,
+#shade-layer .cone .face.front .cone-lighting, #shade-layer .cone .face.front .cone-top-bottom,
+#shade-layer .cylinder .face.front .cylinder-lighting::before, #shade-layer .cylinder .face.front .cylinder-lighting::after, #shade-layer .cylinder .face.front .cylinder-top-bottom::before, #shade-layer .cylinder .face.front .cylinder-top-bottom::after, .highlight,
+#shade-layer .cone .face.front .cone-lighting::before, #shade-layer .cone .face.front .cone-lighting::after, #shade-layer .cone .face.front .cone-top-bottom::before, #shade-layer .cone .face.front .cone-top-bottom::after, .highlight {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+}
+
+#shade-layer .cylinder .face.front .cylinder-lighting,
+#shade-layer .cone .face.front .cone-lighting {
+    transform: 
+        rotateY(calc(atan2(calc(var(--light-cylinder-normal-a) * -1),var(--light-cylinder-normal-c))))
+        rotateY(calc(-1 * (atan2(var(--px) * -1, var(--pz)))))
+    ;
+}
+
+#shade-layer .cylinder .face.front .cylinder-lighting::before, #shade-layer .cylinder .face.front .cylinder-lighting::after, #shade-layer .cylinder .face.front .cylinder-top-bottom::before, #shade-layer .cylinder .face.front .cylinder-top-bottom::after, .highlight,
+#shade-layer .cone .face.front .cone-lighting::before, #shade-layer .cone .face.front .cone-lighting::after, #shade-layer .cone .face.front .cone-top-bottom::before, #shade-layer .cone .face.front .cone-top-bottom::after, .highlight {
+    background-color: hsl(0 0 var(--lightness-bright));
+    backface-visibility: hidden;
+}
+
+#shade-layer .cylinder .face.front .cylinder-lighting::after,
+#shade-layer .cone .face.front .cone-lighting::after {
+    background-color: hsl(0 0 var(--lightness-dark));
+    transform: rotateY(180deg);
+    backface-visibility: hidden;
+}
+
+#shade-layer .cylinder .face.front .cylinder-top-bottom::before, #shade-layer .cylinder .face.front .cylinder-top-bottom::after,
+#shade-layer .cone .face.front .cone-top-bottom::before, #shade-layer .cone .face.front .cone-top-bottom::after {
+    --background-angle: 0deg;
+    --rotation-angle: 90deg;
+    transform: rotateX(var(--rotation-angle)) translateZ(var(--object-size-half-neg));
+    background: linear-gradient(var(--background-angle), hsl(0 0 var(--lightness-bright)) 0% 50%, hsl(0 0 var(--lightness-dark)) 50% 100%);
+    backface-visibility: hidden;
+    border-radius: 50%;
+}
+
+#shade-layer .cylinder .highlight, #shade-layer .cone .highlight {
+    --highlight-angle: 0deg;
+    --lightness-highlight: calc(50% + 25% * var(--bright-dot-product));
+    background-color: hsl(0 0 var(--lightness-highlight));
+    width: 20px;
+    left: calc(50% - 10px);
+    transform: translateZ(var(--object-size-half)) rotateX(var(--highlight-angle));
+}
+
+
+
+/* Cylinder */
+
+#object-layer .cylinder .face.front::before {
+    border-top: 0;
+    border-bottom: 0;
+}
+
+#object-layer .cylinder .face::after {
+    border: 1px solid #fb6b90;
+}
+
+
+#shade-layer .cylinder .face.front .cylinder-top-bottom::after {
+    --background-angle: 180deg;
+    --rotation-angle: -90deg;
+}
+
+
+
+/* Cone */
+
+.cone {
+    --cone-angle: 63.435deg; /* side angle of cone, height = diameter */
+    --scene-x-angle: asin(var(--object-scene-normal-32));
+    --scene-x-abs: max(var(--scene-x-angle), calc(var(--scene-x-angle)) * -1);
+    --silhouette-offset: calc(asin(tan(var(--scene-x-abs)) / tan(var(--cone-angle))));
+    --silhouette-left-angle: calc(var(--silhouette-offset) + atan2(var(--px) * -1, var(--pz)));
+    --silhouette-right-angle: calc(var(--silhouette-offset) * -1 + atan2(var(--px) * -1, var(--pz)));
+
+    --shadow-dot-product: calc(-1 * (var(--object-normal-12) * var(--light-normal-13) + var(--object-normal-22) * var(--light-normal-23) + var(--object-normal-32) * var(--light-normal-33)));
+    --shadow-x-angle: asin(var(--shadow-dot-product));
+    --shadow-x-abs: max(var(--shadow-x-angle), calc(var(--shadow-x-angle) * -1));
+    --shadow-offset: calc(asin(tan(var(--shadow-x-abs)) / tan(var(--cone-angle))));
+    --shadow-left-angle: calc(var(--shadow-offset) + atan2(var(--light-px) * -1, var(--light-pz)));
+    --shadow-right-angle: calc(var(--shadow-offset) * -1 + atan2(var(--light-px) * -1, var(--light-pz)));     
+}
+
+.cone .face.left {
+    --face-y-deg: var(--silhouette-left-angle);
+}
+.cone .face.right {
+    --face-y-deg: var(--silhouette-right-angle);
+}
+
+#object-layer .cone .face::before, #object-layer .cone .face::after {
+    border: 0;
+}
+
+.cone .face:not(.bottom)::before, .cone .face:not(.bottom)::after,
+#shadow-layer .cone .face:not(.bottom), 
+.cone-lighting::before, .cone-lighting::after {
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    border: 0;
+}
+
+#shadow-layer .cone .face.left {
+    --face-y-deg: var(--shadow-left-angle);
+}
+#shadow-layer .cone .face.right {
+    --face-y-deg: var(--shadow-right-angle);
+}
+
+#shade-layer .cone {
+    --face-x-deg: 26.565deg;
+}
+
+#shade-layer .cone .highlight {
+    --highlight-angle: 26.565deg;
+    transform-origin: 50% 100%;
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    top: unset;
+    bottom: 0;
+    height: calc(sqrt(pow(1, 2) + pow(.5, 2)) * var(--object-size));
+}
