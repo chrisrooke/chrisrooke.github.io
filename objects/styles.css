@@ -484,16 +484,19 @@ figure {
     --side-x-angle: atan(calc(.5/1));
     --side-height: calc(sqrt((pow(.5,2) + pow(1,2))) * var(--object-size));
 
-    --corner1: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
-    --corner2: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
-    --corner3: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
-    --corner4: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
-    --corner5: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
-    --corner6: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
-    --corner7: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
-    --corner8: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner1: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner2: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner3: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
+    --corner4: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
+    --corner5: calc((var(--corner-Rx) * 0px) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * 0px));
 
-    --elevation-surface: calc(min(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8)));
+    --elevation-surface: min(
+        var(--corner1), 
+        var(--corner2), 
+        var(--corner3), 
+        var(--corner4),
+        var(--corner5)
+    );
 }
 
 .pyramid .face {
