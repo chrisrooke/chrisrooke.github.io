@@ -165,8 +165,8 @@ figure {
     width: 100%;
     height: 100%;
     display: flex;
-    justify-items: stretch;
-    align-items: stretch;
+    justify-content: stretch;
+    align-items: center;
     overflow: hidden;
     transform-style: preserve-3d;
     /* perspective: 1000px; */
@@ -192,7 +192,7 @@ figure {
     width: 300%;
     height: 300%; */
     width: var(--grid-size);
-    aspect-ratio: 1;
+    height: var(--grid-size);
     margin: 0 auto;
     background: linear-gradient(to right, rgba(0,0,0,0.1) 0% 1px, rgba(0,0,0,0) 1px calc(100% - 1px), rgba(0,0,0,0.1) calc(100% - 1px) 100%), linear-gradient(to bottom, rgba(0,0,0,0.1) 0% 1px, rgba(0,0,0,0) 1px calc(100% - 1px), rgba(0,0,0,0.1) calc(100% - 1px) 100%);
     background-size: var(--object-size) var(--object-size);
@@ -297,6 +297,7 @@ figure {
         rotateZ(var(--object-z));
     will-change: transform;
     transition: --x-pos .25s ease-in-out, --y-pos .25s ease-in-out, --z-pos .25s ease-in-out;
+    anchor-name: --active-object;
 }
 
 .face {
@@ -878,17 +879,15 @@ figure {
 /* Cylindrical */
 
 .cylinder, .cone {
-    --corner1: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
-    --corner2: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
-    --corner3: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
-    --corner4: calc((var(--corner-Rx) * var(--object-size-half)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
-    --corner5: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half)));
-    --corner6: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half)));
-    --corner7: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half)) - (var(--corner-Rz) * var(--object-size-half-neg)));
-    --corner8: calc((var(--corner-Rx) * var(--object-size-half-neg)) + (var(--corner-Ry) * var(--object-size-half-neg)) - (var(--corner-Rz) * var(--object-size-half-neg)));
-
-    /* --elevation-surface: calc((max(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8)) - min(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8))) / 2); */
-    --elevation-surface: calc(min(var(--corner1), var(--corner2), var(--corner3), var(--corner4), var(--corner5), var(--corner6), var(--corner7), var(--corner8)));
+    --elevation-surface: calc(
+        -1 * (
+            (max(var(--object-normal-22), calc(var(--object-normal-22) * -1)) * var(--object-size-half))
+            + (var(--object-size-half) * sqrt(
+                pow(var(--object-normal-21), 2)
+                + pow(var(--object-normal-23), 2)
+            ))
+        )
+    );
 }
 
 .cylinder .face, .cone .face {
@@ -1089,4 +1088,16 @@ figure {
     top: unset;
     bottom: 0;
     height: calc(sqrt(pow(1, 2) + pow(.5, 2)) * var(--object-size));
+}
+
+
+
+#object-panel {
+    position-anchor: --active-object;
+    position: absolute;
+    position-area: left center;
+    width: 100px;
+    height: 200px;
+    background: aqua;
+    offset-position: 200px;
 }
