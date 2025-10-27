@@ -35,7 +35,7 @@ body {
 }
 
 #body {
-    --grid-size: min(75vw, 100vh);
+    --grid-size: min(50vw, 60vh);
     --cell-size: 5;
 
     --object-size: calc(var(--grid-size) / var(--cell-size));
@@ -142,7 +142,7 @@ figure {
 
 #controls span {
     display: inline-block;
-    /* width: 7ch; */
+    width: 7ch;
     text-align: right;
 }
 
@@ -185,7 +185,7 @@ figure {
     will-change: transform;
 }
 
-.ground {
+.ground, .wall-x, .wall-x::before, .wall-x::after, .wall-y, .wall-y::before, .wall-y::after {
     /* position: absolute;
     top: -100%;
     left: -100%;
@@ -193,15 +193,43 @@ figure {
     height: 300%; */
     width: var(--grid-size);
     height: var(--grid-size);
-    margin: 0 auto;
+    top: calc(50% - var(--grid-size) * .5);
+    left: calc(50% - var(--grid-size) * .5);
     background: linear-gradient(to right, rgba(0,0,0,0.1) 0% 1px, rgba(0,0,0,0) 1px calc(100% - 1px), rgba(0,0,0,0.1) calc(100% - 1px) 100%), linear-gradient(to bottom, rgba(0,0,0,0.1) 0% 1px, rgba(0,0,0,0) 1px calc(100% - 1px), rgba(0,0,0,0.1) calc(100% - 1px) 100%);
     background-size: var(--object-size) var(--object-size);
     background-repeat: repeat;
     background-position: center center;
     border: 1px solid rgba(0,0,0,0.1);
-    transform: rotateX(var(--scene-x)) rotateY(var(--scene-y)) rotateX(90deg) ;
+    transform: rotateX(var(--scene-x)) rotateY(var(--scene-y)) rotateX(90deg) translateZ(calc(var(--grid-size) * -.5)) ;
     pointer-events: none;
+    position: absolute;
+    backface-visibility: hidden;
+    content: '';
+    transform-style: preserve-3d;
 }
+
+.wall-x, .wall-y {
+    background: unset;
+    border: 0;
+    transform: rotateX(var(--scene-x)) rotateY(var(--scene-y)) rotateY(-90deg) 
+        /* translateY(calc(var(--grid-size) * -.5)) */
+    ;
+}
+.wall-y {
+    transform: rotateX(var(--scene-x)) rotateY(var(--scene-y)) 
+        /* translateY(calc(var(--grid-size) * -.5)) */
+    ;
+}
+.wall-x::before, .wall-y::before {
+    /* background: blue; */
+    transform: translateZ(calc(var(--grid-size) * -.5));
+}
+.wall-x::after, .wall-y::after {
+    /* background: blue; */
+    transform: rotateY(180deg) translateZ(calc(var(--grid-size) * -.5));
+}
+
+
 
 #light {
     width: 1rem;
@@ -290,7 +318,7 @@ figure {
     left: calc(50% - (var(--object-size) / 2));
     transform: 
         translateX(calc((var(--x-pos) - (var(--cell-size) / (var(--cell-size) / 2))) * var(--object-size)))
-        translateY(var(--elevation))
+        translateY(calc(var(--grid-size) / 2 + var(--elevation)))
         translateZ(calc((var(--z-pos) - (var(--cell-size) / (var(--cell-size) / 2))) * var(--object-size)))
         rotateX(var(--object-x))
         rotateY(var(--object-y))
@@ -423,13 +451,13 @@ figure {
 }
 
 #shadow-layer .scene {
-    transform: rotateX(var(--scene-x)) rotateY(var(--scene-y)) rotateX(90deg) rotateZ(calc(var(--light-y) * -1));
+    transform: rotateX(var(--scene-x)) rotateY(var(--scene-y)) rotateX(90deg) rotateZ(calc(var(--light-y) * -1)) translateZ(calc(var(--grid-size) / -2));
     transform-style: unset;
 }
 
 #shadow-layer .object {
     transform: 
-        translateY(calc((var(--elevation) / sin(var(--light-x))) * cos(var(--light-x)) * 1))
+        translateY(calc(((var(--elevation) / sin(var(--light-x))) * cos(var(--light-x)) * 1)))
         scaleY(calc(1 / sin(var(--light-x))))   
         rotateX(calc(var(--light-x) * -1)) 
         rotateY(calc(var(--light-y) * -1))
@@ -1099,5 +1127,5 @@ figure {
     width: 100px;
     height: 200px;
     background: aqua;
-    offset-position: 200px;
+    transform: translateX(calc(var(--object-size-half-neg) * (abs(cos(var(--scene-y))) + abs(sin(var(--scene-y))) - 1)));
 }

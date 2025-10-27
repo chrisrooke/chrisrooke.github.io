@@ -65,11 +65,21 @@
 
     <div class="scene-container" id="environment-layer">
         <figure class="ground"></figure>
+        <figure class="wall-x"></figure>
+        <figure class="wall-y"></figure>
     </div>
 
     <div class="scene-container" id="shadow-layer">
         <figure class="scene">
-            <figure class="object cube" data-x-pos="2" data-y-pos="0" data-z-pos="2">
+            <figure class="object cube active" data-object-id="cube-1" data-x-pos="2" data-y-pos="0" data-z-pos="2">
+                <div class="face top"></div>
+                <div class="face front"></div>
+                <div class="face left"></div>
+                <div class="face back"></div>
+                <div class="face right"></div>
+                <div class="face bottom"></div>
+            </figure>
+            <figure class="object cube" data-object-id="cube-2" data-x-pos="1" data-y-pos="2" data-z-pos="3">
                 <div class="face top"></div>
                 <div class="face front"></div>
                 <div class="face left"></div>
@@ -81,7 +91,15 @@
     </div>
     <div class="scene-container" id="object-layer">
         <figure class="scene">
-            <figure class="object cube" data-x-pos="2" data-y-pos="0" data-z-pos="2">
+            <figure class="object cube active" data-object-id="cube-1" data-x-pos="2" data-y-pos="0" data-z-pos="2">
+                <div class="face top"></div>
+                <div class="face front"></div>
+                <div class="face left"></div>
+                <div class="face back"></div>
+                <div class="face right"></div>
+                <div class="face bottom"></div>
+            </figure>
+            <figure class="object cube" data-object-id="cube-2" data-x-pos="1" data-y-pos="2" data-z-pos="3">
                 <div class="face top"></div>
                 <div class="face front"></div>
                 <div class="face left"></div>
@@ -94,7 +112,15 @@
     </div>
     <div class="scene-container" id="shade-layer">
         <figure class="scene">
-            <figure class="object cube" data-x-pos="2" data-y-pos="0" data-z-pos="2">
+            <figure class="object cube active" data-object-id="cube-1" data-x-pos="2" data-y-pos="0" data-z-pos="2">
+                <div class="face top"></div>
+                <div class="face front"></div>
+                <div class="face left"></div>
+                <div class="face back"></div>
+                <div class="face right"></div>
+                <div class="face bottom"></div>
+            </figure>
+            <figure class="object cube" data-object-id="cube-2" data-x-pos="1" data-y-pos="2" data-z-pos="3">
                 <div class="face top"></div>
                 <div class="face front"></div>
                 <div class="face left"></div>
@@ -104,7 +130,7 @@
             </figure>
         </figure>
     </div>
-
+    <!-- <div id="object-panel"></div> -->
     <script src="scripts.js"></script>
 </body>
 </html>
